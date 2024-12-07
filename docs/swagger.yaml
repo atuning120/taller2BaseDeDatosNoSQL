@@ -1,0 +1,674 @@
+basePath: /
+definitions:
+  models.Curso:
+    properties:
+      cant_usuarios:
+        type: integer
+      comentarios:
+        description: Lista de IDs de comentarios
+        items:
+          type: string
+        type: array
+      descripcion:
+        type: string
+      id:
+        type: string
+      imagen_url:
+        type: string
+      nombre:
+        type: string
+      unidades:
+        description: Lista de IDs de unidades
+        items:
+          type: string
+        type: array
+      valoracion:
+        type: number
+    type: object
+  models.Usuario:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      inscritos:
+        description: IDs de cursos inscritos
+        items:
+          type: string
+        type: array
+      nombre:
+        type: string
+    type: object
+  request.CreateClaseRequest:
+    properties:
+      descripcion:
+        type: string
+      nombre:
+        type: string
+      video_url:
+        type: string
+    required:
+    - descripcion
+    - nombre
+    - video_url
+    type: object
+  request.CreateComentarioRequest:
+    properties:
+      autor:
+        type: string
+      detalle:
+        type: string
+      me_gusta:
+        type: integer
+      no_me_gusta:
+        type: integer
+      titulo:
+        type: string
+    required:
+    - autor
+    - detalle
+    - me_gusta
+    - no_me_gusta
+    - titulo
+    type: object
+  request.CreateCursoRequest:
+    properties:
+      descripcion:
+        type: string
+      imagen_url:
+        type: string
+      nombre:
+        type: string
+    required:
+    - nombre
+    type: object
+  request.CreateUnidadRequest:
+    properties:
+      nombre:
+        type: string
+    required:
+    - nombre
+    type: object
+  request.CreateUsuarioRequest:
+    properties:
+      email:
+        type: string
+      nombre:
+        type: string
+    required:
+    - email
+    - nombre
+    type: object
+  request.InscripcionRequest:
+    properties:
+      curso_id:
+        type: string
+      usuario_id:
+        type: string
+    required:
+    - curso_id
+    - usuario_id
+    type: object
+  request.UpdateValoracionRequest:
+    properties:
+      valoracion:
+        type: number
+    required:
+    - valoracion
+    type: object
+  response.ClaseResponse:
+    properties:
+      adjuntos_url:
+        items:
+          type: string
+        type: array
+      comentarios:
+        items:
+          type: string
+        type: array
+      descripcion:
+        type: string
+      id:
+        type: string
+      me_gusta:
+        type: integer
+      no_me_gusta:
+        type: integer
+      nombre:
+        type: string
+      unidad_id:
+        type: string
+      video_url:
+        type: string
+    type: object
+  response.ComentarioResponse:
+    properties:
+      autor:
+        type: string
+      clase_id:
+        type: string
+      detalle:
+        type: string
+      fecha:
+        type: string
+      id:
+        type: string
+      me_gusta:
+        type: integer
+      no_me_gusta:
+        type: integer
+      titulo:
+        type: string
+    type: object
+  response.CrearClase:
+    properties:
+      inserted_id:
+        type: string
+    type: object
+  response.CrearCurso:
+    properties:
+      inserted_id:
+        type: string
+    type: object
+  response.CrearUnidad:
+    properties:
+      inserted_id:
+        type: string
+    type: object
+  response.CursoResponse:
+    properties:
+      cant_usuarios:
+        type: integer
+      comentarios:
+        description: IDs de los comentarios
+        items:
+          type: string
+        type: array
+      descripcion:
+        type: string
+      id:
+        type: string
+      imagen_url:
+        type: string
+      nombre:
+        type: string
+      unidades:
+        description: IDs de las unidades
+        items:
+          type: string
+        type: array
+      valoracion:
+        type: number
+    type: object
+  response.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  response.InscripcionResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  response.UpdateValoracionResponse:
+    properties:
+      message:
+        type: string
+      valoracion_actualizada:
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Esta es una API para gestionar cursos y usuarios.
+  title: API de Cursos y Usuarios
+  version: "1.0"
+paths:
+  /api/clases/{id}/comentarios:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los comentarios asociados a una clase por su ID
+      parameters:
+      - description: ID de la clase
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response.ComentarioResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve los comentarios de una clase
+      tags:
+      - Comentarios
+    post:
+      consumes:
+      - application/json
+      description: Agrega un comentario a una clase por su ID
+      parameters:
+      - description: ID de la clase
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comentario a crear
+        in: body
+        name: comentario
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateComentarioRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.ComentarioResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Crear un comentario para una clase
+      tags:
+      - Comentarios
+  /api/cursos:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todos los cursos disponibles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response.CursoResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve todos los cursos
+      tags:
+      - Cursos
+    post:
+      consumes:
+      - application/json
+      description: Agrega un curso a la base de datos
+      parameters:
+      - description: Curso a crear
+        in: body
+        name: curso
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateCursoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CrearCurso'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Crear un curso
+      tags:
+      - Cursos
+  /api/cursos/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un curso en específico dado su ID
+      parameters:
+      - description: ID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CursoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve un curso según su ID
+      tags:
+      - Cursos
+  /api/cursos/{id}/unidades:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve una unidades de un curso en específico dado su ID
+      parameters:
+      - description: ID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CursoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve unidades de un curso
+      tags:
+      - Unidades
+    post:
+      consumes:
+      - application/json
+      description: agregar una unidad a un curso
+      parameters:
+      - description: Unidad a crear
+        in: body
+        name: unidad
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateUnidadRequest'
+      - description: ID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CrearUnidad'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Crear unidad
+      tags:
+      - Unidades
+  /api/cursos/{id}/valoracion:
+    patch:
+      consumes:
+      - application/json
+      description: Actualiza la valoración de un curso según la nueva valoración proporcionada
+      parameters:
+      - description: ID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Nueva valoración del curso
+        in: body
+        name: valoracion
+        required: true
+        schema:
+          $ref: '#/definitions/request.UpdateValoracionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.UpdateValoracionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Actualiza la valoración de un curso
+      tags:
+      - Cursos
+  /api/unidades/{id}/clases:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todas las clases asociadas a una unidad
+      parameters:
+      - description: ID de la unidad
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response.ClaseResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve las clases de una unidad
+      tags:
+      - Clases
+    post:
+      consumes:
+      - application/json
+      description: Agrega una clase a la base de datos asociada a una unidad
+      parameters:
+      - description: ID de la unidad
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Clase a crear
+        in: body
+        name: clase
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateClaseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CrearClase'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Crear una clase para una unidad
+      tags:
+      - Clases
+  /api/usuarios:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve la lista completa de usuarios registrados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Usuario'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve todos los usuarios
+      tags:
+      - Usuarios
+    post:
+      consumes:
+      - application/json
+      description: Agrega un usuario a la base de datos
+      parameters:
+      - description: Usuario a crear
+        in: body
+        name: usuario
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateUsuarioRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Crear un nuevo usuario
+      tags:
+      - Usuarios
+  /api/usuarios/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un usuario en específico por su ID
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Obtener un usuario por ID
+      tags:
+      - Usuarios
+  /api/usuarios/{id}/cursos:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve la lista de cursos en los que un usuario está inscrito
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Curso'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Obtener cursos inscritos de un usuario
+      tags:
+      - Usuarios
+  /api/usuarios/inscripcion:
+    post:
+      consumes:
+      - application/json
+      description: Inscribe a un usuario en un curso específico
+      parameters:
+      - description: Datos de inscripción
+        in: body
+        name: inscripcion
+        required: true
+        schema:
+          $ref: '#/definitions/request.InscripcionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.InscripcionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Inscribir un usuario en un curso
+      tags:
+      - Usuarios
+swagger: "2.0"

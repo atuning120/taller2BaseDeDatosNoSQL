@@ -13,3 +13,14 @@ type Usuario struct {
     Inscritos        []primitive.ObjectID `bson:"inscritos" json:"inscritos"` // IDs de cursos inscritos
     FechaInscripcion []time.Time          `bson:"fecha_inscripcion" json:"fecha_inscripcion"`
 }
+
+// NewUsuario crea una nueva instancia de Usuario con listas vacías
+func NewUsuario(nombre, password, email string) *Usuario {
+    return &Usuario{
+        Nombre:           nombre,
+        Password:         password,
+        Email:            email,
+        Inscritos:        []primitive.ObjectID{},
+        FechaInscripcion: []time.Time{},
+    }
+}

@@ -233,6 +233,59 @@
                 }
             }
         },
+        "/api/cursos/{id}/clases": {
+            "get": {
+                "description": "Devuelve todas las clases asociadas a un curso dado su ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cursos"
+                ],
+                "summary": "Devuelve todas las clases de un curso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID del curso",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.ClaseResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/cursos/{id}/unidades": {
             "get": {
                 "description": "Devuelve una unidades de un curso en específico dado su ID",
@@ -744,6 +797,12 @@
             "properties": {
                 "email": {
                     "type": "string"
+                },
+                "fecha_inscripcion": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "inscritos": {
                     "description": "IDs de cursos inscritos",

@@ -1,13 +1,14 @@
 package services
 
 import (
-    "context"
-    "encoding/json"
-    "errors"
-    "go-API/models"
+	"context"
+	"encoding/json"
+	"errors"
+	"go-API/models"
+	"time"
 
-    "github.com/go-redis/redis/v8"
-    "go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/go-redis/redis/v8"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UsuarioService struct {
@@ -99,6 +100,7 @@ func (us *UsuarioService) InscribirseACurso(email, password, cursoID string) err
         return err
     }
     usuario.Inscritos = append(usuario.Inscritos, cursoObjectID)
+    usuario.FechaInscripcion = append(usuario.FechaInscripcion, time.Now())
 
     data, err := json.Marshal(usuario)
     if err != nil {

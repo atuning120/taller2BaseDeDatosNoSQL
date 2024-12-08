@@ -29,6 +29,10 @@ definitions:
     properties:
       email:
         type: string
+      fecha_inscripcion:
+        items:
+          type: string
+        type: array
       inscritos:
         description: IDs de cursos inscritos
         items:
@@ -376,6 +380,41 @@ paths:
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       summary: Devuelve un curso según su ID
+      tags:
+      - Cursos
+  /api/cursos/{id}/clases:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todas las clases asociadas a un curso dado su ID
+      parameters:
+      - description: ID del curso
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response.ClaseResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve todas las clases de un curso
       tags:
       - Cursos
   /api/cursos/{id}/unidades:

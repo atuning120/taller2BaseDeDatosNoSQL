@@ -158,3 +158,61 @@ func (uc *UsuarioControlador) ObtenerCursosInscritos(c *gin.Context) {
     }
     c.JSON(200, cursos)
 }
+
+
+// VerClase permite que un usuario vea una clase y actualiza su progreso en el curso.
+// @Summary Ver una clase
+// @Description Permite que un usuario vea una clase y actualiza su progreso en el curso
+// @Tags Usuarios
+// @Accept json
+// @Produce json
+// @Param email query string true "Correo del usuario"
+// @Param password query string true "Contraseña del usuario"
+// @Param clase_id path string true "ID de la clase"
+// @Success 200 {object} response.VerClaseResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/usuarios/ver_clase/{clase_id} [post]
+func (uc *UsuarioControlador) VerClase(c *gin.Context) {
+    email := c.Query("email")
+    password := c.Query("password")
+    claseID := c.Param("clase_id")
+
+    err := uc.servicio.VerClase(email, password, claseID)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Clase vista y progreso actualizado"})
+}
+
+// ObtenerProgresoCursos obtiene el progreso de los cursos en los que un usuario está inscrito.
+// @Summary Devuelve el progreso de los cursos de un usuario
+// @Description Devuelve el progreso de los cursos en los que un usuario está inscrito
+// @Tags Usuarios
+// @Accept json
+// @Produce json
+// @Param email query string true "Email del usuario"
+// @Param password query string true "Contraseña del usuario"
+// @Success 200 {array} models.ProgresoCurso
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/usuarios/progreso [get]
+func (uc *UsuarioControlador) ObtenerProgresoCursos(c *gin.Context) {
+    email := c.Query("email")
+    password := c.Query("password")
+
+    progresos, err := uc.servicio.ObtenerProgresoCursos(email, password)
+    if err != nil {
+        if err.Error() == "usuario no encontrado" {
+            c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        } else {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        }
+        return
+    }
+
+    c.JSON(http.StatusOK, progresos)
+}

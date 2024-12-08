@@ -153,3 +153,9 @@ func NewComentarioResponse(comentario models.Comentario) ComentarioResponse {
 type InscripcionResponse struct {
 	Message string `json:"message"`
 }
+
+// VerClaseResponse define la estructura de la respuesta al ver una clase.
+type VerClaseResponse struct {
+    Message string `json:"message"`
+    Estado  string `json:"estado"`
+}

@@ -2,6 +2,8 @@ basePath: /
 definitions:
   models.Curso:
     properties:
+      cant_clases:
+        type: integer
       cant_usuarios:
         type: integer
       comentarios:
@@ -25,6 +27,18 @@ definitions:
       valoracion:
         type: number
     type: object
+  models.ProgresoCurso:
+    properties:
+      clases_vistas:
+        items:
+          type: string
+        type: array
+      curso_id:
+        type: string
+      estado:
+        description: INICIADO, EN CURSO, COMPLETADO
+        type: string
+    type: object
   models.Usuario:
     properties:
       email:
@@ -42,6 +56,11 @@ definitions:
         type: string
       password:
         type: string
+      progresos:
+        description: Progreso de los cursos
+        items:
+          $ref: '#/definitions/models.ProgresoCurso'
+        type: array
     type: object
   request.CreateClaseRequest:
     properties:
@@ -226,6 +245,13 @@ definitions:
         type: string
       valoracion_actualizada:
         type: number
+    type: object
+  response.VerClaseResponse:
+    properties:
+      estado:
+        type: string
+      message:
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -696,6 +722,46 @@ paths:
       summary: Inscribir un usuario en un curso
       tags:
       - Usuarios
+  /api/usuarios/progreso:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve el progreso de los cursos en los que un usuario está inscrito
+      parameters:
+      - description: Email del usuario
+        in: query
+        name: email
+        required: true
+        type: string
+      - description: Contraseña del usuario
+        in: query
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProgresoCurso'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Devuelve el progreso de los cursos de un usuario
+      tags:
+      - Usuarios
   /api/usuarios/usuario:
     get:
       consumes:
@@ -724,6 +790,46 @@ paths:
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       summary: Obtener un usuario por correo y contraseña
+      tags:
+      - Usuarios
+  /api/usuarios/ver_clase/{clase_id}:
+    post:
+      consumes:
+      - application/json
+      description: Permite que un usuario vea una clase y actualiza su progreso en
+        el curso
+      parameters:
+      - description: Correo del usuario
+        in: query
+        name: email
+        required: true
+        type: string
+      - description: Contraseña del usuario
+        in: query
+        name: password
+        required: true
+        type: string
+      - description: ID de la clase
+        in: path
+        name: clase_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.VerClaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Ver una clase
       tags:
       - Usuarios
 swagger: "2.0"

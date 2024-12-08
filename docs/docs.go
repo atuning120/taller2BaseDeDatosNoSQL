@@ -714,6 +714,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/usuarios/progreso": {
+            "get": {
+                "description": "Devuelve el progreso de los cursos en los que un usuario está inscrito",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuarios"
+                ],
+                "summary": "Devuelve el progreso de los cursos de un usuario",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email del usuario",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Contraseña del usuario",
+                        "name": "password",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ProgresoCurso"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/usuarios/usuario": {
             "get": {
                 "description": "Devuelve un usuario en específico por su correo y contraseña",
@@ -758,12 +818,73 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/usuarios/ver_clase/{clase_id}": {
+            "post": {
+                "description": "Permite que un usuario vea una clase y actualiza su progreso en el curso",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuarios"
+                ],
+                "summary": "Ver una clase",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Correo del usuario",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Contraseña del usuario",
+                        "name": "password",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID de la clase",
+                        "name": "clase_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.VerClaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "models.Curso": {
             "type": "object",
             "properties": {
+                "cant_clases": {
+                    "type": "integer"
+                },
                 "cant_usuarios": {
                     "type": "integer"
                 },
@@ -798,6 +919,24 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ProgresoCurso": {
+            "type": "object",
+            "properties": {
+                "clases_vistas": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "curso_id": {
+                    "type": "string"
+                },
+                "estado": {
+                    "description": "INICIADO, EN CURSO, COMPLETADO",
+                    "type": "string"
+                }
+            }
+        },
         "models.Usuario": {
             "type": "object",
             "properties": {
@@ -822,6 +961,13 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                },
+                "progresos": {
+                    "description": "Progreso de los cursos",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProgresoCurso"
+                    }
                 }
             }
         },
@@ -1100,6 +1246,17 @@ const docTemplate = `{
                 },
                 "valoracion_actualizada": {
                     "type": "number"
+                }
+            }
+        },
+        "response.VerClaseResponse": {
+            "type": "object",
+            "properties": {
+                "estado": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
                 }
             }
         }

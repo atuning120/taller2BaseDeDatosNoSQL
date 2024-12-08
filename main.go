@@ -93,9 +93,11 @@ func main() {
 	// Usuarios
 	router.GET("/api/usuarios", usuarioControlador.ObtenerUsuarios)
 	router.GET("/api/usuarios/usuario", usuarioControlador.ObtenerUsuarioPorCorreoYContrasena)
-	router.GET("/api/usuarios/:id/cursos", usuarioControlador.ObtenerCursosInscritos)
+	router.GET("/api/usuarios/cursos", usuarioControlador.ObtenerCursosInscritos)
 	router.POST("/api/usuarios", usuarioControlador.CrearUsuario)
 	router.POST("/api/usuarios/inscripcion", usuarioControlador.InscribirseACurso)
+	router.POST("/api/usuarios/ver_clase/:clase_id", usuarioControlador.VerClase)
+	router.GET("/api/usuarios/progreso", usuarioControlador.ObtenerProgresoCursos)
 
 	// Iniciar el servidor
 	go func() {

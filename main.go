@@ -18,6 +18,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/go-redis/redis/v8"
 )
 
 // @title API de Cursos y Usuarios
@@ -41,6 +42,10 @@ func init() {
 func main() {
 	router := gin.Default()
 
+	redisClient := redis.NewClient(&redis.Options{
+        Addr: "localhost:6379",
+    })
+
 	// Enlace con Swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -55,8 +60,8 @@ func main() {
 	claseService := services.NewClaseService(db)
 	claseControlador := controllers.NewClaseControlador(claseService)
 
-	usuarioService := services.NewUsuarioService(db)
-	usuarioControlador := controllers.NewUsuarioControlador(usuarioService)
+	usuarioService := services.NewUsuarioService(redisClient)
+    usuarioControlador := controllers.NewUsuarioControlador(usuarioService)
 
 	comentarioService := services.NewComentarioService(db)
 	comentarioControlador := controllers.NewComentarioControlador(comentarioService)
@@ -86,7 +91,7 @@ func main() {
 
 	// Usuarios
 	router.GET("/api/usuarios", usuarioControlador.ObtenerUsuarios)
-	router.GET("/api/usuarios/:id", usuarioControlador.ObtenerUsuarioPorID)
+	router.GET("/api/usuarios/usuario", usuarioControlador.ObtenerUsuarioPorCorreoYContrasena)
 	router.GET("/api/usuarios/:id/cursos", usuarioControlador.ObtenerCursosInscritos)
 	router.POST("/api/usuarios", usuarioControlador.CrearUsuario)
 	router.POST("/api/usuarios/inscripcion", usuarioControlador.InscribirseACurso)

@@ -567,6 +567,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/usuarios/cursos": {
+            "get": {
+                "description": "Devuelve la lista de cursos en los que un usuario está inscrito",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuarios"
+                ],
+                "summary": "Obtener cursos inscritos de un usuario",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Correo del usuario",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Contraseña del usuario",
+                        "name": "password",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Curso"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/usuarios/inscripcion": {
             "post": {
                 "description": "Inscribe a un usuario en un curso específico",
@@ -613,9 +661,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/usuarios/{id}": {
+        "/api/usuarios/usuario": {
             "get": {
-                "description": "Devuelve un usuario en específico por su ID",
+                "description": "Devuelve un usuario en específico por su correo y contraseña",
                 "consumes": [
                     "application/json"
                 ],
@@ -625,13 +673,20 @@ const docTemplate = `{
                 "tags": [
                     "Usuarios"
                 ],
-                "summary": "Obtener un usuario por ID",
+                "summary": "Obtener un usuario por correo y contraseña",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID del usuario",
-                        "name": "id",
-                        "in": "path",
+                        "description": "Correo del usuario",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Contraseña del usuario",
+                        "name": "password",
+                        "in": "query",
                         "required": true
                     }
                 ],
@@ -640,47 +695,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.Usuario"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/usuarios/{id}/cursos": {
-            "get": {
-                "description": "Devuelve la lista de cursos en los que un usuario está inscrito",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Usuarios"
-                ],
-                "summary": "Obtener cursos inscritos de un usuario",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID del usuario",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.Curso"
-                            }
                         }
                     },
                     "500": {
@@ -737,9 +751,6 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
-                },
                 "inscritos": {
                     "description": "IDs de cursos inscritos",
                     "type": "array",
@@ -748,6 +759,9 @@ const docTemplate = `{
                     }
                 },
                 "nombre": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -830,13 +844,17 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "email",
-                "nombre"
+                "nombre",
+                "password"
             ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "nombre": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -845,13 +863,17 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "curso_id",
-                "usuario_id"
+                "email",
+                "password"
             ],
             "properties": {
                 "curso_id": {
                     "type": "string"
                 },
-                "usuario_id": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }

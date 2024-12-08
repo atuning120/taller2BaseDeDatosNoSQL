@@ -29,14 +29,14 @@ definitions:
     properties:
       email:
         type: string
-      id:
-        type: string
       inscritos:
         description: IDs de cursos inscritos
         items:
           type: string
         type: array
       nombre:
+        type: string
+      password:
         type: string
     type: object
   request.CreateClaseRequest:
@@ -95,19 +95,25 @@ definitions:
         type: string
       nombre:
         type: string
+      password:
+        type: string
     required:
     - email
     - nombre
+    - password
     type: object
   request.InscripcionRequest:
     properties:
       curso_id:
         type: string
-      usuario_id:
+      email:
+        type: string
+      password:
         type: string
     required:
     - curso_id
-    - usuario_id
+    - email
+    - password
     type: object
   request.UpdateValoracionRequest:
     properties:
@@ -589,40 +595,20 @@ paths:
       summary: Crear un nuevo usuario
       tags:
       - Usuarios
-  /api/usuarios/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Devuelve un usuario en específico por su ID
-      parameters:
-      - description: ID del usuario
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Usuario'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/response.ErrorResponse'
-      summary: Obtener un usuario por ID
-      tags:
-      - Usuarios
-  /api/usuarios/{id}/cursos:
+  /api/usuarios/cursos:
     get:
       consumes:
       - application/json
       description: Devuelve la lista de cursos en los que un usuario está inscrito
       parameters:
-      - description: ID del usuario
-        in: path
-        name: id
+      - description: Correo del usuario
+        in: query
+        name: email
+        required: true
+        type: string
+      - description: Contraseña del usuario
+        in: query
+        name: password
         required: true
         type: string
       produces:
@@ -669,6 +655,36 @@ paths:
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       summary: Inscribir un usuario en un curso
+      tags:
+      - Usuarios
+  /api/usuarios/usuario:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve un usuario en específico por su correo y contraseña
+      parameters:
+      - description: Correo del usuario
+        in: query
+        name: email
+        required: true
+        type: string
+      - description: Contraseña del usuario
+        in: query
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Obtener un usuario por correo y contraseña
       tags:
       - Usuarios
 swagger: "2.0"

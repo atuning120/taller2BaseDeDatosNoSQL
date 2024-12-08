@@ -148,15 +148,17 @@ func (uc *UsuarioControlador) ObtenerCursosInscritos(c *gin.Context) {
     email := c.Query("email")
     password := c.Query("password")
 
-    cursos, err := uc.servicio.ObtenerCursosInscritos(email, password)
-    if err != nil {
-        c.JSON(
-            500,
-            gin.H{"error": err.Error()},
-        )
+    if email == "" || password == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Email y password son requeridos"})
         return
     }
-    c.JSON(200, cursos)
+
+    cursos, err := uc.servicio.ObtenerCursosInscritos(email, password)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    c.JSON(http.StatusOK, cursos)
 }
 
 

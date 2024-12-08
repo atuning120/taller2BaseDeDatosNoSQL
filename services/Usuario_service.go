@@ -18,10 +18,11 @@ type UsuarioService struct {
 	CursoCollection *mongo.Collection
 }
 
-func NewUsuarioService(redisClient *redis.Client) *UsuarioService {
-	return &UsuarioService{
-		RedisClient: redisClient,
-	}
+func NewUsuarioService(redisClient *redis.Client, cursoCollection *mongo.Collection) *UsuarioService {
+    return &UsuarioService{
+        RedisClient:     redisClient,
+        CursoCollection: cursoCollection,
+    }
 }
 
 func (us *UsuarioService) ObtenerUsuarios() ([]models.Usuario, error) {
@@ -136,34 +137,55 @@ func (us *UsuarioService) InscribirseACurso(email, password, cursoID string) err
 }
 
 func (us *UsuarioService) ObtenerCursosInscritos(email, password string) ([]models.Curso, error) {
-	key := "usuario:" + email + ":" + password
+    // Construir la clave de Redis
+    key := "usuario:" + email + ":" + password
 
-	val, err := us.RedisClient.Get(context.TODO(), key).Result()
-	if err == redis.Nil {
-		return nil, errors.New("usuario no encontrado")
-	} else if err != nil {
-		return nil, err
-	}
+    // Obtener el usuario desde Redis
+    val, err := us.RedisClient.Get(context.TODO(), key).Result()
+    if err == redis.Nil {
+        return nil, errors.New("usuario no encontrado")
+    } else if err != nil {
+        return nil, err
+    }
 
-	var usuario models.Usuario
-	if err := json.Unmarshal([]byte(val), &usuario); err != nil {
-		return nil, err
-	}
+    // Deserializar el usuario
+    var usuario models.Usuario
+    if err := json.Unmarshal([]byte(val), &usuario); err != nil {
+        return nil, err
+    }
 
-	var cursos []models.Curso
-	for _, cursoID := range usuario.Inscritos {
-		var curso models.Curso
-		err := us.CursoCollection.FindOne(context.TODO(), bson.M{"_id": cursoID}).Decode(&curso)
-		if err != nil {
-			if err == mongo.ErrNoDocuments {
-				return nil, errors.New("curso no encontrado con ID: " + cursoID.Hex())
-			}
-			return nil, err
-		}
-		cursos = append(cursos, curso)
-	}
+    // Verificar si el usuario tiene cursos inscritos
+    if len(usuario.Inscritos) == 0 {
+        return []models.Curso{}, nil // Retorna un slice vacío
+    }
 
-	return cursos, nil
+    // Convertir los IDs de cursos a ObjectID si es necesario
+    var objectIDs []primitive.ObjectID
+    for _, id := range usuario.Inscritos {
+        objectIDs = append(objectIDs, id)
+    }
+
+    // Realizar una sola consulta para obtener todos los cursos inscritos
+    cursor, err := us.CursoCollection.Find(context.TODO(), bson.M{"_id": bson.M{"$in": objectIDs}})
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(context.TODO())
+
+    var cursos []models.Curso
+    for cursor.Next(context.TODO()) {
+        var curso models.Curso
+        if err := cursor.Decode(&curso); err != nil {
+            return nil, err
+        }
+        cursos = append(cursos, curso)
+    }
+
+    if err := cursor.Err(); err != nil {
+        return nil, err
+    }
+
+    return cursos, nil
 }
 
 // VerClase permite que un usuario vea una clase y actualiza su progreso en el curso.

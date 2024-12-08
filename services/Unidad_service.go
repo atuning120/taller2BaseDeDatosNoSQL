@@ -58,39 +58,44 @@ func (s *UnidadService) ObtenerUnidadesPorCurso(id string) ([]models.Unidad, err
 
 // CrearUnidad crea una nueva unidad y la asocia a un curso.
 func (s *UnidadService) CrearUnidad(id string, unidad models.Unidad) (*mongo.InsertOneResult, error) {
-	objectID, err := primitive.ObjectIDFromHex(id) // Convertir a ObjectID
-	if err != nil {
-		return nil, errors.New("ID inválido")
-	}
+    objectID, err := primitive.ObjectIDFromHex(id) // Convertir a ObjectID
+    if err != nil {
+        return nil, errors.New("ID inválido")
+    }
 
-	// Verificar si el curso existe
-	var curso models.Curso
-	err = s.CursoCollection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&curso)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("curso no encontrado")
-		}
-		return nil, err
-	}
+    // Verificar si el curso existe
+    var curso models.Curso
+    err = s.CursoCollection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&curso)
+    if err != nil {
+        if err == mongo.ErrNoDocuments {
+            return nil, errors.New("curso no encontrado")
+        }
+        return nil, err
+    }
 
-	// Crear la nueva unidad
-	nuevaUnidad := models.NewUnidad(unidad.Nombre)
+    // Crear la nueva unidad con el ID del curso
+    nuevaUnidad := models.Unidad{
+        ID:      primitive.NewObjectID(),
+        IDcurso: objectID,
+        Nombre:  unidad.Nombre,
+        Clases:  []primitive.ObjectID{},
+    }
 
-	// Insertar la unidad en la colección de unidades
-	result, err := s.UnidadCollection.InsertOne(context.TODO(), nuevaUnidad)
-	if err != nil {
-		return nil, err
-	}
+    // Insertar la unidad en la colección de unidades
+    result, err := s.UnidadCollection.InsertOne(context.TODO(), nuevaUnidad)
+    if err != nil {
+        return nil, err
+    }
 
-	// Agregar el ID de la nueva unidad al curso
-	_, err = s.CursoCollection.UpdateOne(
+    // Agregar el ID de la nueva unidad al curso
+    _, err = s.CursoCollection.UpdateOne(
 		context.TODO(),
-		bson.M{"_id": objectID},
-		bson.M{"$push": bson.M{"unidades": result.InsertedID}},
-	)
-	if err != nil {
-		return nil, err
-	}
+        bson.M{"_id": objectID},
+        bson.M{"$push": bson.M{"unidades": result.InsertedID}},
+    )
+    if err != nil {
+        return nil, err
+    }
 
-	return result, nil
+    return result, nil
 }

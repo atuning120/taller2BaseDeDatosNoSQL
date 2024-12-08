@@ -60,50 +60,75 @@ func (s *ClaseService) ObtenerClasesPorUnidad(id string) ([]models.Clase, error)
 }
 
 // CrearClaseParaUnidad crea una nueva clase y la asocia a una unidad.
+// CrearClaseParaUnidad crea una nueva clase y la asocia a una unidad.
 func (s *ClaseService) CrearClaseParaUnidad(unidadID string, clase *models.Clase) (*mongo.InsertOneResult, error) {
-	// Convertir el ID de la unidad a ObjectID
-	objectID, err := primitive.ObjectIDFromHex(unidadID)
-	if err != nil {
-		return nil, errors.New("ID de unidad inválido")
-	}
+    // Convertir el ID de la unidad a ObjectID
+    objectID, err := primitive.ObjectIDFromHex(unidadID)
+    if err != nil {
+        return nil, errors.New("ID de unidad inválido")
+    }
 
-	// Verificar si la unidad existe
-	var unidad models.Unidad
-	err = s.UnidadCollection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&unidad)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("unidad no encontrada")
-		}
-		return nil, err
-	}
+    // Verificar si la unidad existe
+    var unidad models.Unidad
+    err = s.UnidadCollection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&unidad)
+    if err != nil {
+        if err == mongo.ErrNoDocuments {
+            return nil, errors.New("unidad no encontrada")
+        }
+        return nil, err
+    }
 
-	// Asegurarse de que las listas estén inicializadas
-	if clase.Adjuntos_url == nil {
-		clase.Adjuntos_url = []string{}
-	}
-	if clase.Comentarios == nil {
-		clase.Comentarios = []primitive.ObjectID{}
-	}
+    // Asegurarse de que las listas estén inicializadas
+    if clase.Adjuntos_url == nil {
+        clase.Adjuntos_url = []string{}
+    }
+    if clase.Comentarios == nil {
+        clase.Comentarios = []primitive.ObjectID{}
+    }
 
-	// Asignar el ID de la unidad a la clase
-	clase.UnidadID = objectID
-	clase.ID = primitive.NewObjectID() // Generar un nuevo ObjectID para la clase
+    // Asignar el ID de la unidad a la clase
+    clase.UnidadID = objectID
+    clase.ID = primitive.NewObjectID() // Generar un nuevo ObjectID para la clase
 
-	// Insertar la clase en la colección de clases
-	result, err := s.ClaseCollection.InsertOne(context.TODO(), clase)
-	if err != nil {
-		return nil, err
-	}
+    // Insertar la clase en la colección de clases
+    result, err := s.ClaseCollection.InsertOne(context.TODO(), clase)
+    if err != nil {
+        return nil, err
+    }
 
-	// Actualizar la unidad con el ID de la nueva clase
-	_, err = s.UnidadCollection.UpdateOne(
-		context.TODO(),
-		bson.M{"_id": objectID},
+    // Actualizar la unidad con el ID de la nueva clase
+    _, err = s.UnidadCollection.UpdateOne(
+        context.TODO(),
+        bson.M{"_id": objectID},
 		bson.M{"$push": bson.M{"clases": clase.ID}},
-	)
-	if err != nil {
-		return nil, err
-	}
+    )
+    if err != nil {
+        return nil, err
+    }
 
-	return result, nil
+    // Verificar si el curso existe y obtener el curso
+    var curso models.Curso
+    err = s.CursoCollection.FindOne(context.TODO(), bson.M{"_id": unidad.IDcurso}).Decode(&curso)
+    if err != nil {
+        if err == mongo.ErrNoDocuments {
+            return nil, errors.New("curso no encontrado")
+        }
+        return nil, err
+    }
+
+    // Actualizar la cantidad de clases en el curso
+    updateResult, err := s.CursoCollection.UpdateOne(
+        context.TODO(),
+        bson.M{"_id": unidad.IDcurso},
+        bson.M{"$inc": bson.M{"cant_clases": 1}},
+    )
+    if err != nil {
+        return nil, err
+    }
+
+    if updateResult.MatchedCount == 0 {
+        return nil, errors.New("no se encontró el curso para actualizar")
+    }
+
+    return result, nil
 }

@@ -12,6 +12,7 @@ type Curso struct {
 	Unidades    []primitive.ObjectID `bson:"unidades" json:"unidades"` // Lista de IDs de unidades
 	Usuarios    int                  `bson:"cant_usuarios" json:"cant_usuarios"`
 	Comentarios []primitive.ObjectID `bson:"comentarios" json:"comentarios"` // Lista de IDs de comentarios
+	Clases int `bson:"cant_clases" json:"cant_clases"`
 }
 
 // NewCurso crea un nuevo curso con listas vacías por defecto.

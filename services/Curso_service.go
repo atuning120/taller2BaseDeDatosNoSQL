@@ -13,16 +13,18 @@ import (
 
 // CursoService gestiona la lógica relacionada con los cursos.
 type CursoService struct {
-	CursoCollection  *mongo.Collection
-	UnidadCollection *mongo.Collection
+    CursoCollection  *mongo.Collection
+    UnidadCollection *mongo.Collection
+    ClaseCollection  *mongo.Collection
 }
 
 // NewCursoService crea un nuevo servicio para los cursos.
 func NewCursoService(db *mongo.Database) *CursoService {
-	return &CursoService{
-		CursoCollection:  db.Collection("cursos"),
-		UnidadCollection: db.Collection("unidades"),
-	}
+    return &CursoService{
+        CursoCollection:  db.Collection("cursos"),
+        UnidadCollection: db.Collection("unidades"),
+        ClaseCollection:  db.Collection("clases"),
+    }
 }
 
 // ObtenerCursos obtiene todos los cursos de la base de datos.
@@ -89,4 +91,49 @@ func (s *CursoService) ActualizarValoracion(id string, valoracion float32) error
 	}
 
 	return nil
+}
+
+
+// ObtenerClasesPorCurso obtiene todas las clases de un curso.
+func (s *CursoService) ObtenerClasesPorCurso(id string) ([]models.Clase, error) {
+    objectID, err := primitive.ObjectIDFromHex(id)
+    if err != nil {
+        return nil, errors.New("ID inválido")
+    }
+
+    // Obtener el curso por su ID
+    var curso models.Curso
+    err = s.CursoCollection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&curso)
+    if err != nil {
+        if err == mongo.ErrNoDocuments {
+            return nil, errors.New("curso no encontrado")
+        }
+        return nil, err
+    }
+
+    // Obtener las unidades del curso
+    var unidades []models.Unidad
+    cursor, err := s.UnidadCollection.Find(context.TODO(), bson.M{"_id": bson.M{"$in": curso.Unidades}})
+    if err != nil {
+        return nil, err
+    }
+    if err = cursor.All(context.TODO(), &unidades); err != nil {
+        return nil, err
+    }
+
+    // Obtener las clases de cada unidad
+    var clases []models.Clase
+    for _, unidad := range unidades {
+        var unidadClases []models.Clase
+        cursor, err := s.ClaseCollection.Find(context.TODO(), bson.M{"_id": bson.M{"$in": unidad.Clases}})
+        if err != nil {
+            return nil, err
+        }
+        if err = cursor.All(context.TODO(), &unidadClases); err != nil {
+            return nil, err
+        }
+        clases = append(clases, unidadClases...)
+    }
+
+    return clases, nil
 }

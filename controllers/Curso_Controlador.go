@@ -128,4 +128,32 @@ func (cc *CursoControlador) ActualizarValoracion(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Valoración actualizada exitosamente"})
+	
 }
+
+// ObtenerClasesPorCurso devuelve todas las clases de un curso dado su ID.
+// @Summary Devuelve todas las clases de un curso
+// @Description Devuelve todas las clases asociadas a un curso dado su ID
+// @Tags Cursos
+// @Accept json
+// @Produce json
+// @Param id path string true "ID del curso"
+// @Success 200 {array} response.ClaseResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/cursos/{id}/clases [get]
+func (ctrl *CursoControlador) ObtenerClasesPorCurso(c *gin.Context) {
+    id := c.Param("id")
+    clases, err := ctrl.servicio.ObtenerClasesPorCurso(id)
+    if err != nil {
+        if err.Error() == "curso no encontrado" {
+            c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        } else {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        }
+        return
+    }
+    c.JSON(http.StatusOK, clases)
+}
+

@@ -14,16 +14,22 @@ import (
 )
 
 type UsuarioService struct {
-	RedisClient     *redis.Client
-	CursoCollection *mongo.Collection
+    RedisClient      *redis.Client
+    CursoCollection  *mongo.Collection
+    UnidadCollection *mongo.Collection
+    ClaseCollection  *mongo.Collection
 }
 
-func NewUsuarioService(redisClient *redis.Client, cursoCollection *mongo.Collection) *UsuarioService {
+
+func NewUsuarioService(redisClient *redis.Client, cursoCollection *mongo.Collection, unidadCollection *mongo.Collection, claseCollection *mongo.Collection) *UsuarioService {
     return &UsuarioService{
-        RedisClient:     redisClient,
-        CursoCollection: cursoCollection,
+        RedisClient:      redisClient,
+        CursoCollection:  cursoCollection,
+        UnidadCollection: unidadCollection,
+        ClaseCollection:  claseCollection,
     }
 }
+
 
 func (us *UsuarioService) ObtenerUsuarios() ([]models.Usuario, error) {
 	var usuarios []models.Usuario
@@ -160,10 +166,7 @@ func (us *UsuarioService) ObtenerCursosInscritos(email, password string) ([]mode
     }
 
     // Convertir los IDs de cursos a ObjectID si es necesario
-    var objectIDs []primitive.ObjectID
-    for _, id := range usuario.Inscritos {
-        objectIDs = append(objectIDs, id)
-    }
+    objectIDs := append([]primitive.ObjectID{}, usuario.Inscritos...)
 
     // Realizar una sola consulta para obtener todos los cursos inscritos
     cursor, err := us.CursoCollection.Find(context.TODO(), bson.M{"_id": bson.M{"$in": objectIDs}})
@@ -190,105 +193,125 @@ func (us *UsuarioService) ObtenerCursosInscritos(email, password string) ([]mode
 
 // VerClase permite que un usuario vea una clase y actualiza su progreso en el curso.
 func (s *UsuarioService) VerClase(email, password, claseID string) error {
-	// Obtener el usuario
-	usuario, err := s.ObtenerUsuarioPorCorreoYContrasena(email, password)
-	if err != nil {
-		return err
-	}
+    // Obtener el usuario
+    usuario, err := s.ObtenerUsuarioPorCorreoYContrasena(email, password)
+    if err != nil {
+        return err
+    }
 
-	// Convertir claseID a ObjectID
-	claseObjectID, err := primitive.ObjectIDFromHex(claseID)
-	if err != nil {
-		return errors.New("ID de clase inválido")
-	}
+    // Convertir claseID a ObjectID
+    claseObjectID, err := primitive.ObjectIDFromHex(claseID)
+    if err != nil {
+        return errors.New("ID de clase inválido")
+    }
 
-	// Verificar si la clase pertenece a algún curso inscrito por el usuario
-	var cursoID primitive.ObjectID
-	claseEncontrada := false
-	for _, progreso := range usuario.Progresos {
-		totalClases, err := s.obtenerTotalClasesPorCurso(progreso.CursoID)
-		if err != nil {
-			return err
-		}
+    // Obtener la Clase
+    var clase models.Clase
+    err = s.ClaseCollection.FindOne(context.TODO(), bson.M{"_id": claseObjectID}).Decode(&clase)
+    if err != nil {
+        return errors.New("clase no encontrada")
+    }
 
-		for _, clase := range totalClases {
-			if clase == claseObjectID {
-				cursoID = progreso.CursoID
-				claseEncontrada = true
-				break
-			}
-		}
+    // Obtener la Unidad de la Clase
+    var unidad models.Unidad
+    err = s.UnidadCollection.FindOne(context.TODO(), bson.M{"_id": clase.UnidadID}).Decode(&unidad)
+    if err != nil {
+        return errors.New("unidad no encontrada")
+    }
 
-		if claseEncontrada {
-			break
-		}
-	}
+    // Obtener el Curso de la Unidad
+    cursoID := unidad.IDcurso
 
-	if !claseEncontrada {
-		return errors.New("la clase no pertenece a ningún curso inscrito por el usuario")
-	}
+    // Verificar si el usuario está inscrito en el curso
+    var progreso *models.ProgresoCurso
+    for i := range usuario.Progresos {
+        if usuario.Progresos[i].CursoID == cursoID {
+            progreso = &usuario.Progresos[i]
+            break
+        }
+    }
 
-	// Actualizar el progreso del curso
-	for i, progreso := range usuario.Progresos {
-		if progreso.CursoID == cursoID {
-			if contains(progreso.ClasesVistas, claseObjectID) {
-				return errors.New("clase ya vista")
-			}
-			progreso.ClasesVistas = append(progreso.ClasesVistas, claseObjectID)
+    if progreso == nil {
+        return errors.New("el usuario no está inscrito en el curso de esta clase")
+    }
 
-			// Obtener el total de clases del curso
-			totalClases, err := s.obtenerTotalClasesPorCurso(progreso.CursoID)
-			if err != nil {
-				return err
-			}
+    // Verificar si la clase ya ha sido vista
+    if contains(progreso.ClasesVistas, claseObjectID) {
+        return errors.New("clase ya vista")
+    }
 
-			// Actualizar el estado del progreso
-			if len(progreso.ClasesVistas) == 0 {
-				progreso.Estado = "INICIADO"
-			} else if len(progreso.ClasesVistas) < len(totalClases) {
-				progreso.Estado = "EN CURSO"
-			} else if len(progreso.ClasesVistas) == len(totalClases) {
-				progreso.Estado = "COMPLETADO"
-			}
+    // Agregar la clase a ClasesVistas
+    progreso.ClasesVistas = append(progreso.ClasesVistas, claseObjectID)
 
-			usuario.Progresos[i] = progreso
-			break
-		}
-	}
+    // Obtener el total de clases del curso
+    totalClases, err := s.obtenerTotalClasesPorCurso(cursoID)
+    if err != nil {
+        return err
+    }
 
-	// Actualizar el usuario en la base de datos Redis
-	data, err := json.Marshal(usuario)
-	if err != nil {
-		return err
-	}
+    // Actualizar el estado del progreso
+    if len(progreso.ClasesVistas) == 0 {
+        progreso.Estado = "INICIADO"
+    } else if len(progreso.ClasesVistas) < len(totalClases) {
+        progreso.Estado = "EN CURSO"
+    } else if len(progreso.ClasesVistas) == len(totalClases) {
+        progreso.Estado = "COMPLETADO"
+    }
 
-	key := "usuario:" + email + ":" + password
-	err = s.RedisClient.Set(context.TODO(), key, data, 0).Err()
-	if err != nil {
-		return err
-	}
+    // Actualizar el progreso en el slice de Progresos del usuario
+    for i := range usuario.Progresos {
+        if usuario.Progresos[i].CursoID == cursoID {
+            usuario.Progresos[i] = *progreso
+            break
+        }
+    }
 
-	return nil
+    // Actualizar el usuario en Redis
+    data, err := json.Marshal(usuario)
+    if err != nil {
+        return err
+    }
+
+    key := "usuario:" + email + ":" + password
+    err = s.RedisClient.Set(context.TODO(), key, data, 0).Err()
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
+
 
 // obtenerTotalClasesPorCurso obtiene el número total de clases de un curso.
 func (s *UsuarioService) obtenerTotalClasesPorCurso(cursoID primitive.ObjectID) ([]primitive.ObjectID, error) {
-	var curso models.Curso
-	err := s.CursoCollection.FindOne(context.TODO(), bson.M{"_id": cursoID}).Decode(&curso)
-	if err != nil {
-		return nil, err
-	}
-	return curso.Unidades, nil
+    var curso models.Curso
+    err := s.CursoCollection.FindOne(context.TODO(), bson.M{"_id": cursoID}).Decode(&curso)
+    if err != nil {
+        return nil, err
+    }
+
+    var totalClases []primitive.ObjectID
+    for _, unidadID := range curso.Unidades {
+        var unidad models.Unidad
+        err := s.UnidadCollection.FindOne(context.TODO(), bson.M{"_id": unidadID}).Decode(&unidad)
+        if err != nil {
+            return nil, err
+        }
+        totalClases = append(totalClases, unidad.Clases...)
+    }
+
+    return totalClases, nil
 }
+
 
 // contains verifica si una lista de ObjectIDs contiene un ObjectID específico.
 func contains(slice []primitive.ObjectID, item primitive.ObjectID) bool {
-	for _, v := range slice {
-		if v == item {
-			return true
-		}
-	}
-	return false
+    for _, v := range slice {
+        if v == item {
+            return true
+        }
+    }
+    return false
 }
 
 // ObtenerProgresoCursos obtiene el progreso de los cursos en los que un usuario está inscrito.

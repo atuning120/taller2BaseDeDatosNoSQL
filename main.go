@@ -60,7 +60,7 @@ func main() {
 	claseService := services.NewClaseService(db)
 	claseControlador := controllers.NewClaseControlador(claseService)
 
-	usuarioService := services.NewUsuarioService(redisClient,db.Collection("cursos"))
+	usuarioService := services.NewUsuarioService(redisClient,db.Collection("cursos"),db.Collection("unidades"),db.Collection("clases"))
     usuarioControlador := controllers.NewUsuarioControlador(usuarioService)
 
 	comentarioService := services.NewComentarioService(db)

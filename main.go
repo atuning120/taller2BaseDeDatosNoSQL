@@ -96,7 +96,7 @@ func main() {
 	router.GET("/api/usuarios/cursos", usuarioControlador.ObtenerCursosInscritos)
 	router.POST("/api/usuarios", usuarioControlador.CrearUsuario)
 	router.POST("/api/usuarios/inscripcion", usuarioControlador.InscribirseACurso)
-	router.POST("/api/usuarios/ver_clase/:clase_id", usuarioControlador.VerClase)
+	router.POST("/api/usuarios/:email/:password/clases/:clase_id", usuarioControlador.VerClase)
 	router.GET("/api/usuarios/progreso", usuarioControlador.ObtenerProgresoCursos)
 
 	// Iniciar el servidor

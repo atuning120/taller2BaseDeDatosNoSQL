@@ -660,6 +660,46 @@ paths:
       summary: Crear un nuevo usuario
       tags:
       - Usuarios
+  /api/usuarios/{email}/{password}/clases/{clase_id}:
+    post:
+      consumes:
+      - application/json
+      description: Permite que un usuario vea una clase y actualiza su progreso en
+        el curso
+      parameters:
+      - description: Correo del usuario
+        in: path
+        name: email
+        required: true
+        type: string
+      - description: Contraseña del usuario
+        in: path
+        name: password
+        required: true
+        type: string
+      - description: ID de la clase
+        in: path
+        name: clase_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.VerClaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Ver una clase
+      tags:
+      - Usuarios
   /api/usuarios/cursos:
     get:
       consumes:
@@ -790,46 +830,6 @@ paths:
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       summary: Obtener un usuario por correo y contraseña
-      tags:
-      - Usuarios
-  /api/usuarios/ver_clase/{clase_id}:
-    post:
-      consumes:
-      - application/json
-      description: Permite que un usuario vea una clase y actualiza su progreso en
-        el curso
-      parameters:
-      - description: Correo del usuario
-        in: query
-        name: email
-        required: true
-        type: string
-      - description: Contraseña del usuario
-        in: query
-        name: password
-        required: true
-        type: string
-      - description: ID de la clase
-        in: path
-        name: clase_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/response.VerClaseResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/response.ErrorResponse'
-      summary: Ver una clase
       tags:
       - Usuarios
 swagger: "2.0"

@@ -819,7 +819,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/usuarios/ver_clase/{clase_id}": {
+        "/api/usuarios/{email}/{password}/clases/{clase_id}": {
             "post": {
                 "description": "Permite que un usuario vea una clase y actualiza su progreso en el curso",
                 "consumes": [
@@ -837,14 +837,14 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Correo del usuario",
                         "name": "email",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "Contraseña del usuario",
                         "name": "password",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     },
                     {

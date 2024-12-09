@@ -168,16 +168,16 @@ func (uc *UsuarioControlador) ObtenerCursosInscritos(c *gin.Context) {
 // @Tags Usuarios
 // @Accept json
 // @Produce json
-// @Param email query string true "Correo del usuario"
-// @Param password query string true "Contraseña del usuario"
+// @Param email path string true "Correo del usuario"
+// @Param password path string true "Contraseña del usuario"
 // @Param clase_id path string true "ID de la clase"
 // @Success 200 {object} response.VerClaseResponse
 // @Failure 400 {object} response.ErrorResponse
 // @Failure 500 {object} response.ErrorResponse
-// @Router /api/usuarios/ver_clase/{clase_id} [post]
+// @Router /api/usuarios/{email}/{password}/clases/{clase_id} [post]
 func (uc *UsuarioControlador) VerClase(c *gin.Context) {
-    email := c.Query("email")
-    password := c.Query("password")
+    email := c.Param("email")
+    password := c.Param("password")
     claseID := c.Param("clase_id")
 
     err := uc.servicio.VerClase(email, password, claseID)
@@ -185,8 +185,7 @@ func (uc *UsuarioControlador) VerClase(c *gin.Context) {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
-
-    c.JSON(http.StatusOK, gin.H{"message": "Clase vista y progreso actualizado"})
+    c.JSON(http.StatusOK, gin.H{"message": "Clase vista exitosamente"})
 }
 
 // ObtenerProgresoCursos obtiene el progreso de los cursos en los que un usuario está inscrito.

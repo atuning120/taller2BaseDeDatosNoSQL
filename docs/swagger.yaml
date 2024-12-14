@@ -1,5 +1,29 @@
 basePath: /
 definitions:
+  controllers.PromedioResponse:
+    properties:
+      promedio:
+        type: number
+    type: object
+  models.Comentario:
+    properties:
+      autor:
+        type: string
+      clase_id:
+        type: string
+      detalle:
+        type: string
+      fecha:
+        type: string
+      id:
+        type: string
+      me_gusta:
+        type: integer
+      no_me_gusta:
+        type: integer
+      titulo:
+        type: string
+    type: object
   models.Curso:
     properties:
       cant_clases:
@@ -39,6 +63,19 @@ definitions:
         description: INICIADO, EN CURSO, COMPLETADO
         type: string
     type: object
+  models.Puntuacion:
+    properties:
+      fecha:
+        type: string
+      password:
+        description: contraseña del usuario
+        type: string
+      usuario:
+        description: email del usuario
+        type: string
+      valor:
+        type: number
+    type: object
   models.Usuario:
     properties:
       email:
@@ -74,25 +111,6 @@ definitions:
     - descripcion
     - nombre
     - video_url
-    type: object
-  request.CreateComentarioRequest:
-    properties:
-      autor:
-        type: string
-      detalle:
-        type: string
-      me_gusta:
-        type: integer
-      no_me_gusta:
-        type: integer
-      titulo:
-        type: string
-    required:
-    - autor
-    - detalle
-    - me_gusta
-    - no_me_gusta
-    - titulo
     type: object
   request.CreateCursoRequest:
     properties:
@@ -170,25 +188,6 @@ definitions:
       video_url:
         type: string
     type: object
-  response.ComentarioResponse:
-    properties:
-      autor:
-        type: string
-      clase_id:
-        type: string
-      detalle:
-        type: string
-      fecha:
-        type: string
-      id:
-        type: string
-      me_gusta:
-        type: integer
-      no_me_gusta:
-        type: integer
-      titulo:
-        type: string
-    type: object
   response.CrearClase:
     properties:
       inserted_id:
@@ -239,6 +238,11 @@ definitions:
       message:
         type: string
     type: object
+  response.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
   response.UpdateValoracionResponse:
     properties:
       message:
@@ -275,17 +279,13 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Lista de comentarios
           schema:
             items:
-              $ref: '#/definitions/response.ComentarioResponse'
+              $ref: '#/definitions/models.Comentario'
             type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Error interno del servidor
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       summary: Devuelve los comentarios de una clase
@@ -306,20 +306,24 @@ paths:
         name: comentario
         required: true
         schema:
-          $ref: '#/definitions/request.CreateComentarioRequest'
+          $ref: '#/definitions/models.Comentario'
       produces:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Comentario creado exitosamente
           schema:
-            $ref: '#/definitions/response.ComentarioResponse'
+            $ref: '#/definitions/models.Comentario'
         "400":
-          description: Bad Request
+          description: Datos inválidos o faltan campos requeridos
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Clase no encontrada
           schema:
             $ref: '#/definitions/response.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Error interno del servidor
           schema:
             $ref: '#/definitions/response.ErrorResponse'
       summary: Crear un comentario para una clase
@@ -541,6 +545,73 @@ paths:
       summary: Actualiza la valoración de un curso
       tags:
       - Cursos
+  /api/puntuaciones/cursos/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Agrega una puntuación a un curso por su ID. El usuario se identifica
+        por email y password, se verifica que esté inscrito en el curso. Solo se guarda
+        el nombre del usuario en la relación.
+      parameters:
+      - description: ID del curso (ObjectID en hex)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Puntuación a crear (usuario (email), password, valor)
+        in: body
+        name: puntuacion
+        required: true
+        schema:
+          $ref: '#/definitions/models.Puntuacion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Puntuación creada exitosamente
+          schema:
+            $ref: '#/definitions/response.MessageResponse'
+        "400":
+          description: Datos inválidos o valor fuera de rango
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Curso no encontrado, usuario no encontrado o usuario no inscrito
+            en el curso
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Crear una puntuación para un curso
+      tags:
+      - Puntuaciones
+  /api/puntuaciones/cursos/{id}/promedio:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene el promedio de puntuaciones de un curso por su ID
+      parameters:
+      - description: ID del curso (ObjectID en hex)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Devuelve el promedio en un campo 'promedio'
+          schema:
+            $ref: '#/definitions/controllers.PromedioResponse'
+        "500":
+          description: Error interno del servidor
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Obtener el promedio de puntuaciones de un curso
+      tags:
+      - Puntuaciones
   /api/unidades/{id}/clases:
     get:
       consumes:

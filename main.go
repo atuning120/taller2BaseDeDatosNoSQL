@@ -11,6 +11,7 @@ import (
 	"go-API/controllers"
 	_ "go-API/docs" // Importar los documentos de Swagger
 	"go-API/services"
+    "go-API/neo4j"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -29,6 +30,7 @@ import (
 // @BasePath /
 
 var mongoClient *mongo.Client
+var redisClient *redis.Client
 
 func init() {
 	if err := loadEnv(); err != nil {
@@ -37,6 +39,8 @@ func init() {
 	if err := connectToMongoDB(); err != nil {
 		log.Fatal("No se pudo conectar a MongoDB:", err)
 	}
+    // Inicializar Neo4j
+    neo4j.InitNeo4j()
 }
 
 func main() {
@@ -45,6 +49,7 @@ func main() {
 	redisClient := redis.NewClient(&redis.Options{
         Addr: "localhost:6379",
     })
+
 
 	// Enlace con Swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -63,8 +68,11 @@ func main() {
 	usuarioService := services.NewUsuarioService(redisClient,db.Collection("cursos"),db.Collection("unidades"),db.Collection("clases"))
     usuarioControlador := controllers.NewUsuarioControlador(usuarioService)
 
-	comentarioService := services.NewComentarioService(db)
+	comentarioService := services.NewComentarioService(neo4j.Driver)
 	comentarioControlador := controllers.NewComentarioControlador(comentarioService)
+
+    puntuacionService := services.NewPuntuacionService(neo4j.Driver, db.Collection("cursos"),redisClient)
+    puntuacionesControlador := controllers.NewPuntuacionesControlador(puntuacionService)
 
 	// Rutas de la API
 	router.GET("/", func(c *gin.Context) {
@@ -93,11 +101,14 @@ func main() {
 	// Usuarios
 	router.GET("/api/usuarios", usuarioControlador.ObtenerUsuarios)
 	router.GET("/api/usuarios/usuario", usuarioControlador.ObtenerUsuarioPorCorreoYContrasena)
-	router.GET("/api/usuarios/cursos", usuarioControlador.ObtenerCursosInscritos)
-	router.POST("/api/usuarios", usuarioControlador.CrearUsuario)
+	router.GET("/api/usuarios/cursos", usuarioControlador.ObtenerCursosInscritos) 
 	router.POST("/api/usuarios/inscripcion", usuarioControlador.InscribirseACurso)
 	router.POST("/api/usuarios/:email/:password/clases/:clase_id", usuarioControlador.VerClase)
 	router.GET("/api/usuarios/progreso", usuarioControlador.ObtenerProgresoCursos)
+
+    // Puntuaciones
+    router.POST("/api/puntuaciones/cursos/:id", puntuacionesControlador.CrearPuntuacionParaCurso)
+    router.GET("/api/puntuaciones/cursos/:id/promedio", puntuacionesControlador.ObtenerPromedioPuntuacion)
 
 	// Iniciar el servidor
 	go func() {
@@ -145,6 +156,11 @@ func gracefulShutdown() {
 	if err := mongoClient.Disconnect(context.TODO()); err != nil {
 		log.Fatal("Error al desconectar MongoDB:", err)
 	}
-	log.Println("Conexión con MongoDB cerrada. Apagando servidor.")
-	os.Exit(0)
+	log.Println("Cerrando la conexión con Neo4j...")
+    neo4j.CloseNeo4j()
+    log.Println("Cerrando la conexión con Redis...")
+    // Cerrar Redis
+    redisClient.Close()
+    log.Println("Conexión con MongoDB, Neo4j y Redis cerrada. Apagando servidor.")
+    os.Exit(0)
 }

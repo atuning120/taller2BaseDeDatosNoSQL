@@ -39,22 +39,16 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Lista de comentarios",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/response.ComentarioResponse"
+                                "$ref": "#/definitions/models.Comentario"
                             }
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -87,25 +81,31 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.CreateComentarioRequest"
+                            "$ref": "#/definitions/models.Comentario"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Comentario creado exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/response.ComentarioResponse"
+                            "$ref": "#/definitions/models.Comentario"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Datos inválidos o faltan campos requeridos",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Clase no encontrada",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -433,6 +433,103 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/puntuaciones/cursos/{id}": {
+            "post": {
+                "description": "Agrega una puntuación a un curso por su ID. El usuario se identifica por email y password, se verifica que esté inscrito en el curso. Solo se guarda el nombre del usuario en la relación.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Puntuaciones"
+                ],
+                "summary": "Crear una puntuación para un curso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID del curso (ObjectID en hex)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Puntuación a crear (usuario (email), password, valor)",
+                        "name": "puntuacion",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Puntuacion"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Puntuación creada exitosamente",
+                        "schema": {
+                            "$ref": "#/definitions/response.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos o valor fuera de rango",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Curso no encontrado, usuario no encontrado o usuario no inscrito en el curso",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/puntuaciones/cursos/{id}/promedio": {
+            "get": {
+                "description": "Obtiene el promedio de puntuaciones de un curso por su ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Puntuaciones"
+                ],
+                "summary": "Obtener el promedio de puntuaciones de un curso",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID del curso (ObjectID en hex)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Devuelve el promedio en un campo 'promedio'",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.PromedioResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -879,6 +976,43 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.PromedioResponse": {
+            "type": "object",
+            "properties": {
+                "promedio": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.Comentario": {
+            "type": "object",
+            "properties": {
+                "autor": {
+                    "type": "string"
+                },
+                "clase_id": {
+                    "type": "string"
+                },
+                "detalle": {
+                    "type": "string"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "me_gusta": {
+                    "type": "integer"
+                },
+                "no_me_gusta": {
+                    "type": "integer"
+                },
+                "titulo": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Curso": {
             "type": "object",
             "properties": {
@@ -937,6 +1071,25 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Puntuacion": {
+            "type": "object",
+            "properties": {
+                "fecha": {
+                    "type": "string"
+                },
+                "password": {
+                    "description": "contraseña del usuario",
+                    "type": "string"
+                },
+                "usuario": {
+                    "description": "email del usuario",
+                    "type": "string"
+                },
+                "valor": {
+                    "type": "number"
+                }
+            }
+        },
         "models.Usuario": {
             "type": "object",
             "properties": {
@@ -986,33 +1139,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "video_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "request.CreateComentarioRequest": {
-            "type": "object",
-            "required": [
-                "autor",
-                "detalle",
-                "me_gusta",
-                "no_me_gusta",
-                "titulo"
-            ],
-            "properties": {
-                "autor": {
-                    "type": "string"
-                },
-                "detalle": {
-                    "type": "string"
-                },
-                "me_gusta": {
-                    "type": "integer"
-                },
-                "no_me_gusta": {
-                    "type": "integer"
-                },
-                "titulo": {
                     "type": "string"
                 }
             }
@@ -1132,35 +1258,6 @@ const docTemplate = `{
                 }
             }
         },
-        "response.ComentarioResponse": {
-            "type": "object",
-            "properties": {
-                "autor": {
-                    "type": "string"
-                },
-                "clase_id": {
-                    "type": "string"
-                },
-                "detalle": {
-                    "type": "string"
-                },
-                "fecha": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "me_gusta": {
-                    "type": "integer"
-                },
-                "no_me_gusta": {
-                    "type": "integer"
-                },
-                "titulo": {
-                    "type": "string"
-                }
-            }
-        },
         "response.CrearClase": {
             "type": "object",
             "properties": {
@@ -1231,6 +1328,14 @@ const docTemplate = `{
             }
         },
         "response.InscripcionResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.MessageResponse": {
             "type": "object",
             "properties": {
                 "message": {

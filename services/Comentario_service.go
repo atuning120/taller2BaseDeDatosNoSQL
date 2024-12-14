@@ -1,98 +1,142 @@
+// services/comentario_service.go
 package services
 
 import (
-	"context"
-	"errors"
-	"go-API/models"
+    "context"
+    "errors"
+    "go-API/models"
+    "time"
 
-	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+    "github.com/google/uuid"
+    "github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
-// ClaseService gestiona la lógica relacionada con las clases.
 type ComentarioService struct {
-	CursoCollection      *mongo.Collection
-	UnidadCollection     *mongo.Collection
-	ClaseCollection      *mongo.Collection
-	ComentarioCollection *mongo.Collection
+    Driver neo4j.DriverWithContext
 }
 
-// NewClaseService crea un nuevo servicio para las clases.
-func NewComentarioService(db *mongo.Database) *ComentarioService {
-	return &ComentarioService{
-		CursoCollection:      db.Collection("cursos"),
-		ClaseCollection:      db.Collection("clases"), // Asegúrate de asignar la colección de clases aquí
-		ComentarioCollection: db.Collection("comentarios"),
-	}
+func NewComentarioService(driver neo4j.DriverWithContext) *ComentarioService {
+    return &ComentarioService{Driver: driver}
 }
 
-// ObtenerClasesPorUnidad obtiene todas las clases de una unidad.
-func (s *ComentarioService) ObtenerComentariosPorClase(id string) ([]models.Comentario, error) {
-	// Convertir el ID a ObjectID
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, errors.New("ID inválido")
-	}
+// ObtenerComentariosPorClase obtiene todos los comentarios asociados a una clase.
+func (s *ComentarioService) ObtenerComentariosPorClase(ctx context.Context, claseID string) ([]models.Comentario, error) {
+    session := s.Driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+    defer session.Close(ctx)
 
-	// Verificar si la clase existe
-	var clase models.Clase
-	err = s.ClaseCollection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&clase)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("clase no encontrada")
-		}
-		return nil, err
-	}
+    result, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+        query := `
+            MATCH (u:User)-[:COMENTÓ]->(c:Comment)-[:PERTENECE_A]->(:Course)-[:CONTENEDOR_DE]->(:Clase {id: $claseID})
+            RETURN c.id AS id, c.autor AS autor, c.fecha AS fecha, c.titulo AS titulo, c.detalle AS detalle, c.meGusta AS meGusta, c.noMeGusta AS noMeGusta
+            ORDER BY c.fecha DESC
+        `
+        records, err := tx.Run(ctx, query, map[string]interface{}{
+            "claseID": claseID,
+        })
+        if err != nil {
+            return nil, err
+        }
 
-	// Buscar los comentarios asociados a la clase
-	cursor, err := s.ComentarioCollection.Find(context.TODO(), bson.M{"clase_id": objectID})
-	if err != nil {
-		return nil, err
-	}
+        var comentarios []models.Comentario
+        for records.Next(ctx) {
+            record := records.Record()
+            comentario := models.Comentario{
+                ID:        record.Values[0].(string),
+                Autor:     record.Values[1].(string),
+                Fecha:     record.Values[2].(time.Time),
+                Titulo:    record.Values[3].(string),
+                Detalle:   record.Values[4].(string),
+                MeGusta:   int(record.Values[5].(int64)),
+                NoMeGusta: int(record.Values[6].(int64)),
+            }
+            comentarios = append(comentarios, comentario)
+        }
 
-	var comentarios []models.Comentario
-	if err = cursor.All(context.TODO(), &comentarios); err != nil {
-		return nil, err
-	}
+        if err = records.Err(); err != nil {
+            return nil, err
+        }
 
-	return comentarios, nil
+        return comentarios, nil
+    })
+
+    if err != nil {
+        return nil, err
+    }
+
+    return result.([]models.Comentario), nil
 }
 
-// CrearComentarioParaClase crea un nuevo comentario para una clase.
-func (s *ComentarioService) CrearComentarioParaClase(id string, ctx *gin.Context) (*models.Comentario, error) {
-	// Convertir el ID a ObjectID
-	claseID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, errors.New("ID inválido")
-	}
+// CrearComentarioParaClase crea un nuevo comentario asociado a una clase.
+func (s *ComentarioService) CrearComentarioParaClase(ctx context.Context, claseID string, comentario *models.Comentario) (*models.Comentario, error) {
+    session := s.Driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+    defer session.Close(ctx)
 
-	// Verificar si la clase existe
-	var clase models.Clase
-	err = s.ClaseCollection.FindOne(context.TODO(), bson.M{"_id": claseID}).Decode(&clase)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("clase no encontrada")
-		}
-		return nil, err
-	}
+    result, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+        // Verificar que la clase existe
+        checkQuery := `
+            MATCH (clase:Clase {id: $claseID})
+            RETURN COUNT(*) > 0 AS exists
+        `
+        checkResult, err := tx.Run(ctx, checkQuery, map[string]interface{}{
+            "claseID": claseID,
+        })
+        if err != nil {
+            return nil, err
+        }
+        if !checkResult.Next(ctx) {
+            return nil, errors.New("clase no encontrada")
+        }
+        exists, ok := checkResult.Record().Get("exists")
+        if !ok || !exists.(bool) {
+            return nil, errors.New("clase no encontrada")
+        }
 
-	// Crear un nuevo comentario
-	var comentario models.Comentario
-	if err := ctx.BindJSON(&comentario); err != nil {
-		return nil, err
-	}
-	comentario.ClaseID = claseID
+        // Generar un ID único para el comentario
+        comentarioID := uuid.New().String()
+        comentario.ID = comentarioID
+        comentario.Fecha = time.Now()
 
-	// Insertar el comentario en la base de datos
-	result, err := s.ComentarioCollection.InsertOne(context.TODO(), comentario)
-	if err != nil {
-		return nil, err
-	}
+        // Crear el comentario y las relaciones
+        createQuery := `
+            MATCH (u:User {email: $autor}), (clase:Clase {id: $claseID})
+            CREATE (u)-[:COMENTÓ]->(c:Comment {
+                id: $id,
+                autor: $autor,
+                fecha: datetime(),
+                titulo: $titulo,
+                detalle: $detalle,
+                meGusta: $meGusta,
+                noMeGusta: $noMeGusta
+            })-[:PERTENECE_A]->(:Course)-[:CONTENEDOR_DE]->(clase)
+            RETURN c.id AS id, c.autor AS autor, c.fecha AS fecha, c.titulo AS titulo, c.detalle AS detalle, c.meGusta AS meGusta, c.noMeGusta AS noMeGusta
+        `
+        // Primero obtenemos el ResultWithContext y el error
+        res, err := tx.Run(ctx, createQuery, map[string]interface{}{
+            "id":        comentario.ID,
+            "autor":     comentario.Autor,
+            "titulo":    comentario.Titulo,
+            "detalle":   comentario.Detalle,
+            "meGusta":   comentario.MeGusta,
+            "noMeGusta": comentario.NoMeGusta,
+            "claseID":   claseID,
+        })
+        if err != nil {
+            return nil, err
+        }
 
-	// Asignar el ID del comentario
-	comentario.ID = result.InsertedID.(primitive.ObjectID)
+        // Ahora consumimos el resultado
+        _, err = res.Consume(ctx)
+        if err != nil {
+            return nil, err
+        }
 
-	return &comentario, nil
+        return comentario, nil
+    })
+
+    if err != nil {
+        return nil, err
+    }
+
+    return result.(*models.Comentario), nil
 }
+

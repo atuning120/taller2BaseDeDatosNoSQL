@@ -1,19 +1,18 @@
+// models/comentario.go
 package models
 
 import (
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
+    "time"
 )
 
-// Comentario representa un comentario realizado sobre un curso o clase
+// Comentario representa un comentario realizado por un usuario en una clase.
 type Comentario struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	ClaseID   primitive.ObjectID `bson:"clase_id" json:"clase_id"`
-	Autor     string             `bson:"autor" json:"autor"`
-	Fecha     time.Time          `bson:"fecha" json:"fecha"`
-	Titulo    string             `bson:"titulo" json:"titulo"`
-	Detalle   string             `bson:"detalle" json:"detalle"`
-	MeGusta   int                `bson:"me_gusta" json:"me_gusta"`
-	NoMeGusta int                `bson:"no_me_gusta" json:"no_me_gusta"`
+    ID        string    `json:"id"`
+    ClaseID   string    `json:"clase_id"`
+    Autor     string    `json:"autor"`
+    Fecha     time.Time `json:"fecha"`
+    Titulo    string    `json:"titulo"`
+    Detalle   string    `json:"detalle"`
+    MeGusta   int       `json:"me_gusta"`
+    NoMeGusta int       `json:"no_me_gusta"`
 }

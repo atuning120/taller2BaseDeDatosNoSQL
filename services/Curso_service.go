@@ -70,38 +70,21 @@ func (s *CursoService) CrearCurso(curso models.Curso) (*mongo.InsertOneResult, e
 
     _, err = session.ExecuteWrite(context.TODO(), func(tx neo4j.ManagedTransaction) (interface{}, error) {
         createQuery := `
-            CREATE (c:Course {
+            CREATE (c:Curso {
                 id: $id,
-                nombre: $nombre,
-                descripcion: $descripcion,
-                imagen: $imagen,
-                valoracion: $valoracion
+                nombre: $nombre
             })
-            RETURN c.id
         `
 
-        result, err := tx.Run(context.TODO(), createQuery, map[string]interface{}{
-            "id":          cursoIDHex,
-            "nombre":      curso.Nombre,
-            "descripcion": curso.Descripcion,
-            "imagen":      curso.Imagen,
-            "valoracion":  float64(curso.Valoracion), // Neo4j maneja float64, convertir
+        _, err := tx.Run(context.TODO(), createQuery, map[string]interface{}{
+            "id":     cursoIDHex,
+            "nombre": curso.Nombre,
         })
-        if err != nil {
-            return nil, err
-        }
-
-        if !result.Next(context.TODO()) {
-            return nil, errors.New("no se pudo crear el nodo Course en Neo4j")
-        }
-
-        return nil, nil
+        return nil, err
     })
 
     if err != nil {
-        // Si falla crear el nodo en Neo4j, podrías decidir revertir en MongoDB o retornar error.
-        // Aquí retornamos error. Así el frontend sabrá que no se creó correctamente el curso.
-        // Opcional: revertir en MongoDB
+        // Si falla crear el nodo en Neo4j, revertimos la inserción en MongoDB
         deleteResult, delErr := s.CursoCollection.DeleteOne(context.TODO(), bson.M{"_id": insertedID})
         if delErr != nil {
             log.Printf("No se pudo eliminar el curso de MongoDB tras fallo en Neo4j: %v", delErr)
@@ -114,6 +97,7 @@ func (s *CursoService) CrearCurso(curso models.Curso) (*mongo.InsertOneResult, e
 
     return result, nil
 }
+
 
 // ObtenerCursoPorID obtiene un curso por su ID.
 func (s *CursoService) ObtenerCursoPorID(id string) (*models.Curso, error) {

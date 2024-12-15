@@ -479,13 +479,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Datos inválidos o valor fuera de rango",
+                        "description": "Error en la solicitud",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Curso no encontrado, usuario no encontrado o usuario no inscrito en el curso",
+                        "description": "Curso no encontrado",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -1079,15 +1079,12 @@ const docTemplate = `{
         "models.Puntuacion": {
             "type": "object",
             "properties": {
-                "fecha": {
+                "email": {
+                    "description": "email del usuario",
                     "type": "string"
                 },
                 "password": {
                     "description": "contraseña del usuario",
-                    "type": "string"
-                },
-                "usuario": {
-                    "description": "email del usuario",
                     "type": "string"
                 },
                 "valor": {

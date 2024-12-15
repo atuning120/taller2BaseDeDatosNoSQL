@@ -1,24 +1,23 @@
 package controllers
 
 import (
-    "go-API/models"
-    "go-API/services"
-    "go-API/response"
-    "net/http"
+	"go-API/response"
+	"go-API/services"
+	"net/http"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type PuntuacionesControlador struct {
-    Servicio *services.PuntuacionService
+	Servicio *services.PuntuacionService
 }
 
 func NewPuntuacionesControlador(servicio *services.PuntuacionService) *PuntuacionesControlador {
-    return &PuntuacionesControlador{Servicio: servicio}
+	return &PuntuacionesControlador{Servicio: servicio}
 }
 
 type PromedioResponse struct {
-    Promedio float32 `json:"promedio"`
+	Promedio float32 `json:"promedio"`
 }
 
 // CrearPuntuacionParaCurso crea una nueva puntuación de un usuario para un curso.
@@ -32,46 +31,35 @@ type PromedioResponse struct {
 // @Param id path string true "ID del curso (ObjectID en hex)"
 // @Param puntuacion body models.Puntuacion true "Puntuación a crear (usuario (email), password, valor)"
 // @Success 200 {object} response.MessageResponse "Puntuación creada exitosamente"
-// @Failure 400 {object} response.ErrorResponse "Datos inválidos o valor fuera de rango"
-// @Failure 404 {object} response.ErrorResponse "Curso no encontrado, usuario no encontrado o usuario no inscrito en el curso"
+// @Failure 400 {object} response.ErrorResponse "Error en la solicitud"
+// @Failure 404 {object} response.ErrorResponse "Curso no encontrado"
 // @Failure 500 {object} response.ErrorResponse "Error interno del servidor"
 // @Router /api/puntuaciones/cursos/{id} [post]
-func (p *PuntuacionesControlador) CrearPuntuacionParaCurso(ctx *gin.Context) {
-    var puntuacion models.Puntuacion
-    if err := ctx.ShouldBindJSON(&puntuacion); err != nil {
-        ctx.JSON(http.StatusBadRequest, response.ErrorResponse{Message: "Datos inválidos: " + err.Error()})
-        return
-    }
+func (ctrl *PuntuacionesControlador) CrearPuntuacionParaCurso(c *gin.Context) {
+	var request struct {
+		Email    string  `json:"email"`
+		Password string  `json:"password"`
+		Valor    float32 `json:"valor"`
+	}
 
-    cursoID := ctx.Param("id")
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-    if puntuacion.Usuario == "" {
-        ctx.JSON(http.StatusBadRequest, response.ErrorResponse{Message: "El campo 'usuario' (email) es requerido"})
-        return
-    }
+	cursoID := c.Param("id")
+	err := ctrl.Servicio.CrearPuntuacionParaCurso(c.Request.Context(), cursoID, request.Email, request.Password, request.Valor)
+	if err != nil {
+		switch err.Error() {
+		case "curso no encontrado", "el usuario no está inscrito en este curso", "usuario no encontrado o credenciales inválidas", "el usuario ya ha puntuado este curso":
+			c.JSON(http.StatusNotFound, response.ErrorResponse{Message: err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, response.ErrorResponse{Message: err.Error()})
+		}
+		return
+	}
 
-    if puntuacion.Password == "" {
-        ctx.JSON(http.StatusBadRequest, response.ErrorResponse{Message: "El campo 'password' es requerido"})
-        return
-    }
-
-    if puntuacion.Valor < 0 || puntuacion.Valor > 5 {
-        ctx.JSON(http.StatusBadRequest, response.ErrorResponse{Message: "La puntuación debe estar entre 0 y 5"})
-        return
-    }
-
-    err := p.Servicio.CrearPuntuacionParaCurso(ctx.Request.Context(), cursoID, puntuacion.Usuario, puntuacion.Password, puntuacion.Valor)
-    if err != nil {
-        switch err.Error() {
-        case "curso no encontrado", "el usuario no está inscrito en este curso", "usuario no encontrado o credenciales inválidas":
-            ctx.JSON(http.StatusNotFound, response.ErrorResponse{Message: err.Error()})
-        default:
-            ctx.JSON(http.StatusInternalServerError, response.ErrorResponse{Message: err.Error()})
-        }
-        return
-    }
-
-    ctx.JSON(http.StatusOK, response.MessageResponse{Message: "Puntuación creada exitosamente"})
+	c.JSON(http.StatusOK, response.MessageResponse{Message: "Puntuación creada exitosamente"})
 }
 
 // ObtenerPromedioPuntuacion obtiene el promedio de puntuaciones de un curso.
@@ -86,13 +74,13 @@ func (p *PuntuacionesControlador) CrearPuntuacionParaCurso(ctx *gin.Context) {
 // @Failure 500 {object} response.ErrorResponse "Error interno del servidor"
 // @Router /api/puntuaciones/cursos/{id}/promedio [get]
 func (p *PuntuacionesControlador) ObtenerPromedioPuntuacion(ctx *gin.Context) {
-    cursoID := ctx.Param("id")
+	cursoID := ctx.Param("id")
 
-    promedio, err := p.Servicio.ObtenerPromedioPuntuacionesCurso(ctx.Request.Context(), cursoID)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, response.ErrorResponse{Message: err.Error()})
-        return
-    }
+	promedio, err := p.Servicio.ObtenerPromedioPuntuacionesCurso(ctx.Request.Context(), cursoID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, response.ErrorResponse{Message: err.Error()})
+		return
+	}
 
-    ctx.JSON(http.StatusOK, PromedioResponse{Promedio: promedio})
+	ctx.JSON(http.StatusOK, PromedioResponse{Promedio: promedio})
 }

@@ -1,19 +1,19 @@
 package controllers
 
 import (
-    "net/http"
+	"net/http"
 
-    "go-API/services"
+	"go-API/services"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type ComentarioCursoControlador struct {
-    servicio *services.ComentarioCursoService
+	servicio *services.ComentarioCursoService
 }
 
 func NewComentarioCursoControlador(servicio *services.ComentarioCursoService) *ComentarioCursoControlador {
-    return &ComentarioCursoControlador{servicio: servicio}
+	return &ComentarioCursoControlador{servicio: servicio}
 }
 
 // CrearComentarioCurso crea un comentario para un curso.
@@ -28,28 +28,28 @@ func NewComentarioCursoControlador(servicio *services.ComentarioCursoService) *C
 // @Failure 500 {object} map[string]string "error: Internal Server Error"
 // @Router /api/comentarios_curso [post]
 func (ctrl *ComentarioCursoControlador) CrearComentarioCurso(c *gin.Context) {
-    var request struct {
-        Email   string `json:"email"`
-        CursoID string `json:"curso_id"`
-        Texto   string `json:"texto"`
-    }
+	var request struct {
+		Email   string `json:"email"`
+		CursoID string `json:"curso_id"`
+		Texto   string `json:"texto"`
+	}
 
-    if err := c.ShouldBindJSON(&request); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-    err := ctrl.servicio.CrearComentarioCurso(request.Email, request.CursoID, request.Texto)
-    if err != nil {
-        if err.Error() == "el comentario debe tener al menos 15 caracteres" {
-            c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        } else {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        }
-        return
-    }
+	err := ctrl.servicio.CrearComentarioCurso(request.Email, request.CursoID, request.Texto)
+	if err != nil {
+		if err.Error() == "el comentario debe tener al menos 15 caracteres" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
 
-    c.JSON(http.StatusOK, gin.H{"message": "Comentario creado exitosamente"})
+	c.JSON(http.StatusOK, gin.H{"message": "Comentario creado exitosamente"})
 }
 
 // ObtenerComentariosCursoPorUsuario obtiene todos los comentarios hechos por un usuario.
@@ -64,13 +64,13 @@ func (ctrl *ComentarioCursoControlador) CrearComentarioCurso(c *gin.Context) {
 // @Failure 500 {object} map[string]string "error: Internal Server Error"
 // @Router /api/comentarios_curso/usuarios/{email} [get]
 func (ctrl *ComentarioCursoControlador) ObtenerComentariosCursoPorUsuario(c *gin.Context) {
-    email := c.Param("email")
+	email := c.Param("email")
 
-    comentarios, err := ctrl.servicio.ObtenerComentariosCursoPorUsuario(email)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	comentarios, err := ctrl.servicio.ObtenerComentariosCursoPorUsuario(email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-    c.JSON(http.StatusOK, comentarios)
+	c.JSON(http.StatusOK, comentarios)
 }

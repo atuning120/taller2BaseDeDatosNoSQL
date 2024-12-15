@@ -113,6 +113,115 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/comentarios_curso": {
+            "post": {
+                "description": "Agrega un comentario a un curso por su ID. El usuario se identifica por email.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ComentariosCurso"
+                ],
+                "summary": "Crear un comentario para un curso",
+                "parameters": [
+                    {
+                        "description": "Comentario a crear (usuario (email), cursoID, texto)",
+                        "name": "comentario",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ComentarioCurso"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: Comentario creado exitosamente",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/comentarios_curso/usuarios/{email}": {
+            "get": {
+                "description": "Devuelve todos los comentarios hechos por un usuario por su email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ComentariosCurso"
+                ],
+                "summary": "Obtener todos los comentarios hechos por un usuario",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email del usuario",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "curso: nombre del curso, comentario: texto del comentario",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/cursos": {
             "get": {
                 "description": "Devuelve todos los cursos disponibles",
@@ -1105,6 +1214,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "titulo": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ComentarioCurso": {
+            "type": "object",
+            "properties": {
+                "curso_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "texto": {
                     "type": "string"
                 }
             }

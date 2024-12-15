@@ -56,6 +56,8 @@ func main() {
 
 	// Inicializar servicios y controladores
 	db := mongoClient.Database("miBaseDeDatos")
+	migrationService := services.NewMigrationService(redisClient, db, neo4j.Driver)
+	
 	cursoService := services.NewCursoService(db, neo4j.Driver)
 	cursoControlador := controllers.NewCursoControlador(cursoService)
 
@@ -111,6 +113,16 @@ func main() {
     // Puntuaciones
     router.POST("/api/puntuaciones/cursos/:id", puntuacionesControlador.CrearPuntuacionParaCurso)
     router.GET("/api/puntuaciones/cursos/:id/promedio", puntuacionesControlador.ObtenerPromedioPuntuacion)
+
+
+	// Migraciones de usuarios y cursos a nodos en el grafo de Neo4j [hacer en postman]
+	router.POST("/api/migrate", func(c *gin.Context) {
+		if err := migrationService.MigrateUsuariosYCursos(context.Background()); err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"message": "Migración completada exitosamente"})
+	})
 
 	// Iniciar el servidor
 	go func() {

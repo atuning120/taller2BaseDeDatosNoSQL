@@ -1,86 +1,87 @@
 package controllers
 
 import (
-	"go-API/response"
-	"go-API/services"
-	"net/http"
+    "net/http"
 
-	"github.com/gin-gonic/gin"
+    "go-API/services"
+
+    "github.com/gin-gonic/gin"
 )
 
 type PuntuacionesControlador struct {
-	Servicio *services.PuntuacionService
+    servicio *services.PuntuacionService
 }
 
 func NewPuntuacionesControlador(servicio *services.PuntuacionService) *PuntuacionesControlador {
-	return &PuntuacionesControlador{Servicio: servicio}
+    return &PuntuacionesControlador{servicio: servicio}
 }
 
-type PromedioResponse struct {
-	Promedio float32 `json:"promedio"`
-}
-
-// CrearPuntuacionParaCurso crea una nueva puntuación de un usuario para un curso.
-// Ahora requiere usuario (email) y password en el body además del valor.
-//
+// CrearPuntuacionParaCurso crea una puntuación para un curso.
 // @Summary Crear una puntuación para un curso
 // @Description Agrega una puntuación a un curso por su ID. El usuario se identifica por email y password, se verifica que esté inscrito en el curso. Solo se guarda el nombre del usuario en la relación.
 // @Tags Puntuaciones
 // @Accept json
 // @Produce json
-// @Param id path string true "ID del curso (ObjectID en hex)"
+// @Param id path string true "ID del curso"
 // @Param puntuacion body models.Puntuacion true "Puntuación a crear (usuario (email), password, valor)"
-// @Success 200 {object} response.MessageResponse "Puntuación creada exitosamente"
-// @Failure 400 {object} response.ErrorResponse "Error en la solicitud"
-// @Failure 404 {object} response.ErrorResponse "Curso no encontrado"
-// @Failure 500 {object} response.ErrorResponse "Error interno del servidor"
+// @Success 200 {object} response.MessageResponse
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
 // @Router /api/puntuaciones/cursos/{id} [post]
 func (ctrl *PuntuacionesControlador) CrearPuntuacionParaCurso(c *gin.Context) {
-	var request struct {
-		Email    string  `json:"email"`
-		Password string  `json:"password"`
-		Valor    float32 `json:"valor"`
-	}
+    id := c.Param("id")
 
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    var request struct {
+        Email    string  `json:"email"`
+        Password string  `json:"password"`
+        Valor    float32 `json:"valor"`
+    }
 
-	cursoID := c.Param("id")
-	err := ctrl.Servicio.CrearPuntuacionParaCurso(c.Request.Context(), cursoID, request.Email, request.Password, request.Valor)
-	if err != nil {
-		switch err.Error() {
-		case "curso no encontrado", "el usuario no está inscrito en este curso", "usuario no encontrado o credenciales inválidas", "el usuario ya ha puntuado este curso":
-			c.JSON(http.StatusNotFound, response.ErrorResponse{Message: err.Error()})
-		default:
-			c.JSON(http.StatusInternalServerError, response.ErrorResponse{Message: err.Error()})
-		}
-		return
-	}
+    if err := c.ShouldBindJSON(&request); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	c.JSON(http.StatusOK, response.MessageResponse{Message: "Puntuación creada exitosamente"})
+    err := ctrl.servicio.CrearPuntuacionParaCurso(request.Email, request.Password, id, request.Valor)
+    if err != nil {
+        if err.Error() == "usuario no encontrado" || err.Error() == "el usuario no está inscrito en este curso" {
+            c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        } else {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        }
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Puntuación creada exitosamente"})
 }
 
 // ObtenerPromedioPuntuacion obtiene el promedio de puntuaciones de un curso.
-//
 // @Summary Obtener el promedio de puntuaciones de un curso
-// @Description Obtiene el promedio de puntuaciones de un curso por su ID
+// @Description Devuelve el promedio de puntuaciones de un curso por su ID
 // @Tags Puntuaciones
 // @Accept json
 // @Produce json
-// @Param id path string true "ID del curso (ObjectID en hex)"
-// @Success 200 {object} PromedioResponse "Devuelve el promedio en un campo 'promedio'"
-// @Failure 500 {object} response.ErrorResponse "Error interno del servidor"
+// @Param id path string true "ID del curso"
+// @Success 200 {object} gin.H{"promedio": float64}
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 404 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
 // @Router /api/puntuaciones/cursos/{id}/promedio [get]
-func (p *PuntuacionesControlador) ObtenerPromedioPuntuacion(ctx *gin.Context) {
-	cursoID := ctx.Param("id")
+func (ctrl *PuntuacionesControlador) ObtenerPromedioPuntuacion(c *gin.Context) {
+    id := c.Param("id")
 
-	promedio, err := p.Servicio.ObtenerPromedioPuntuacionesCurso(ctx.Request.Context(), cursoID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, response.ErrorResponse{Message: err.Error()})
-		return
-	}
+    promedio, err := ctrl.servicio.ObtenerPromedioPuntuacion(id)
+    if err != nil {
+        if err.Error() == "no se encontraron puntuaciones" {
+            c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        } else {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        }
+        return
+    }
 
-	ctx.JSON(http.StatusOK, PromedioResponse{Promedio: promedio})
+    c.JSON(http.StatusOK, gin.H{"promedio": promedio})
 }
+
+

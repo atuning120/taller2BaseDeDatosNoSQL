@@ -113,8 +113,7 @@ func main() {
     // Puntuaciones
     router.POST("/api/puntuaciones/cursos/:id", puntuacionesControlador.CrearPuntuacionParaCurso)
     router.GET("/api/puntuaciones/cursos/:id/promedio", puntuacionesControlador.ObtenerPromedioPuntuacion)
-
-
+	router.GET("/api/puntuaciones/usuarios/:email", puntuacionesControlador.ObtenerPuntuacionesPorUsuario)	
 	// Migraciones de usuarios y cursos a nodos en el grafo de Neo4j [hacer en postman]
 	router.POST("/api/migrate", func(c *gin.Context) {
 		if err := migrationService.MigrateUsuariosYCursos(context.Background()); err != nil {

@@ -24,10 +24,10 @@ func NewPuntuacionesControlador(servicio *services.PuntuacionService) *Puntuacio
 // @Produce json
 // @Param id path string true "ID del curso"
 // @Param puntuacion body models.Puntuacion true "Puntuación a crear (usuario (email), password, valor)"
-// @Success 200 {object} response.MessageResponse
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 404 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
+// @Success 200 {object} map[string]string "message: Puntuación creada exitosamente"
+// @Failure 400 {object} map[string]string "error: Bad Request"
+// @Failure 404 {object} map[string]string "error: Not Found"
+// @Failure 500 {object} map[string]string "error: Internal Server Error"
 // @Router /api/puntuaciones/cursos/{id} [post]
 func (ctrl *PuntuacionesControlador) CrearPuntuacionParaCurso(c *gin.Context) {
     id := c.Param("id")
@@ -47,6 +47,8 @@ func (ctrl *PuntuacionesControlador) CrearPuntuacionParaCurso(c *gin.Context) {
     if err != nil {
         if err.Error() == "usuario no encontrado" || err.Error() == "el usuario no está inscrito en este curso" {
             c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        } else if err.Error() == "curso ya puntuado, intente con otro curso" || err.Error() == "la puntuación debe estar entre 0 y 5" {
+            c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         } else {
             c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         }
@@ -63,10 +65,10 @@ func (ctrl *PuntuacionesControlador) CrearPuntuacionParaCurso(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "ID del curso"
-// @Success 200 {object} gin.H{"promedio": float64}
-// @Failure 400 {object} response.ErrorResponse
-// @Failure 404 {object} response.ErrorResponse
-// @Failure 500 {object} response.ErrorResponse
+// @Success 200 {object} map[string]float64 "promedio: 0.0"
+// @Failure 400 {object} map[string]string "error: Bad Request"
+// @Failure 404 {object} map[string]string "error: Not Found"
+// @Failure 500 {object} map[string]string "error: Internal Server Error"
 // @Router /api/puntuaciones/cursos/{id}/promedio [get]
 func (ctrl *PuntuacionesControlador) ObtenerPromedioPuntuacion(c *gin.Context) {
     id := c.Param("id")
@@ -84,4 +86,30 @@ func (ctrl *PuntuacionesControlador) ObtenerPromedioPuntuacion(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"promedio": promedio})
 }
 
+// ObtenerPuntuacionesPorUsuario obtiene todas las puntuaciones hechas por un usuario.
+// @Summary Obtener todas las puntuaciones hechas por un usuario
+// @Description Devuelve todas las puntuaciones hechas por un usuario por su email
+// @Tags Puntuaciones
+// @Accept json
+// @Produce json
+// @Param email path string true "Email del usuario"
+// @Success 200 {array} map[string]interface{} "curso: nombre del curso, valoracion: valor de la puntuación"
+// @Failure 400 {object} map[string]string "error: Bad Request"
+// @Failure 404 {object} map[string]string "error: Not Found"
+// @Failure 500 {object} map[string]string "error: Internal Server Error"
+// @Router /api/puntuaciones/usuarios/{email} [get]
+func (ctrl *PuntuacionesControlador) ObtenerPuntuacionesPorUsuario(c *gin.Context) {
+    email := c.Param("email")
 
+    puntuaciones, err := ctrl.servicio.ObtenerPuntuacionesPorUsuario(email)
+    if err != nil {
+        if err.Error() == "error al obtener las puntuaciones" {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        } else {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        }
+        return
+    }
+
+    c.JSON(http.StatusOK, puntuaciones)
+}

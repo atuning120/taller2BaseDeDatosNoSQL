@@ -1,10 +1,5 @@
 basePath: /
 definitions:
-  controllers.PromedioResponse:
-    properties:
-      promedio:
-        type: number
-    type: object
   models.Comentario:
     properties:
       autor:
@@ -236,11 +231,6 @@ definitions:
         type: string
     type: object
   response.InscripcionResponse:
-    properties:
-      message:
-        type: string
-    type: object
-  response.MessageResponse:
     properties:
       message:
         type: string
@@ -558,7 +548,7 @@ paths:
         por email y password, se verifica que esté inscrito en el curso. Solo se guarda
         el nombre del usuario en la relación.
       parameters:
-      - description: ID del curso (ObjectID en hex)
+      - description: ID del curso
         in: path
         name: id
         required: true
@@ -573,21 +563,29 @@ paths:
       - application/json
       responses:
         "200":
-          description: Puntuación creada exitosamente
+          description: 'message: Puntuación creada exitosamente'
           schema:
-            $ref: '#/definitions/response.MessageResponse'
+            additionalProperties:
+              type: string
+            type: object
         "400":
-          description: Error en la solicitud
+          description: 'error: Bad Request'
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            additionalProperties:
+              type: string
+            type: object
         "404":
-          description: Curso no encontrado
+          description: 'error: Not Found'
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            additionalProperties:
+              type: string
+            type: object
         "500":
-          description: Error interno del servidor
+          description: 'error: Internal Server Error'
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            additionalProperties:
+              type: string
+            type: object
       summary: Crear una puntuación para un curso
       tags:
       - Puntuaciones
@@ -595,9 +593,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Obtiene el promedio de puntuaciones de un curso por su ID
+      description: Devuelve el promedio de puntuaciones de un curso por su ID
       parameters:
-      - description: ID del curso (ObjectID en hex)
+      - description: ID del curso
         in: path
         name: id
         required: true
@@ -606,14 +604,72 @@ paths:
       - application/json
       responses:
         "200":
-          description: Devuelve el promedio en un campo 'promedio'
+          description: 'promedio: 0.0'
           schema:
-            $ref: '#/definitions/controllers.PromedioResponse'
+            additionalProperties:
+              type: number
+            type: object
+        "400":
+          description: 'error: Bad Request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Not Found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
-          description: Error interno del servidor
+          description: 'error: Internal Server Error'
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            additionalProperties:
+              type: string
+            type: object
       summary: Obtener el promedio de puntuaciones de un curso
+      tags:
+      - Puntuaciones
+  /api/puntuaciones/usuarios/{email}:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve todas las puntuaciones hechas por un usuario por su email
+      parameters:
+      - description: Email del usuario
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'curso: nombre del curso, valoracion: valor de la puntuación'
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: 'error: Bad Request'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: 'error: Not Found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 'error: Internal Server Error'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Obtener todas las puntuaciones hechas por un usuario
       tags:
       - Puntuaciones
   /api/unidades/{id}/clases:

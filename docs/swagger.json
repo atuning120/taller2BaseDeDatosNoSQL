@@ -450,7 +450,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID del curso (ObjectID en hex)",
+                        "description": "ID del curso",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -467,27 +467,39 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Puntuación creada exitosamente",
+                        "description": "message: Puntuación creada exitosamente",
                         "schema": {
-                            "$ref": "#/definitions/response.MessageResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Error en la solicitud",
+                        "description": "error: Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "404": {
-                        "description": "Curso no encontrado",
+                        "description": "error: Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Error interno del servidor",
+                        "description": "error: Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -495,7 +507,7 @@
         },
         "/api/puntuaciones/cursos/{id}/promedio": {
             "get": {
-                "description": "Obtiene el promedio de puntuaciones de un curso por su ID",
+                "description": "Devuelve el promedio de puntuaciones de un curso por su ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -509,7 +521,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "ID del curso (ObjectID en hex)",
+                        "description": "ID del curso",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -517,15 +529,102 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Devuelve el promedio en un campo 'promedio'",
+                        "description": "promedio: 0.0",
                         "schema": {
-                            "$ref": "#/definitions/controllers.PromedioResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "number"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "500": {
-                        "description": "Error interno del servidor",
+                        "description": "error: Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/puntuaciones/usuarios/{email}": {
+            "get": {
+                "description": "Devuelve todas las puntuaciones hechas por un usuario por su email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Puntuaciones"
+                ],
+                "summary": "Obtener todas las puntuaciones hechas por un usuario",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email del usuario",
+                        "name": "email",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "curso: nombre del curso, valoracion: valor de la puntuación",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "error: Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error: Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -970,14 +1069,6 @@
         }
     },
     "definitions": {
-        "controllers.PromedioResponse": {
-            "type": "object",
-            "properties": {
-                "promedio": {
-                    "type": "number"
-                }
-            }
-        },
         "models.Comentario": {
             "type": "object",
             "properties": {
@@ -1324,14 +1415,6 @@
             }
         },
         "response.InscripcionResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.MessageResponse": {
             "type": "object",
             "properties": {
                 "message": {

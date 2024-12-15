@@ -29,7 +29,8 @@ func NewPuntuacionService(driver neo4j.DriverWithContext, cursoCollection *mongo
 }
 
 // CrearPuntuacionParaCurso crea una nueva puntuación de un usuario para un curso.
-// Ahora se usa email y password para construir la clave en Redis: "usuario:email:password".
+// Calcula el nuevo promedio desde Neo4j y actualiza la valoración en MongoDB.
+// No actualiza la valoración en el nodo Course de Neo4j.
 func (s *PuntuacionService) CrearPuntuacionParaCurso(ctx context.Context, cursoID string, email string, password string, valor float32) error {
     if valor < 0 || valor > 5 {
         return errors.New("la puntuación debe estar entre 0 y 5")
@@ -111,15 +112,16 @@ func (s *PuntuacionService) CrearPuntuacionParaCurso(ctx context.Context, cursoI
             return nil, err
         }
 
-        // Calcular el nuevo promedio y actualizar en MongoDB
-        promedio, err := s.ObtenerPromedioPuntuacionesCurso(ctx, cursoID)
+        // Obtener el nuevo promedio desde Neo4j
+        nuevoPromedio, err := s.calcularPromedioNeo4j(ctx, tx, cursoID)
         if err != nil {
             return nil, err
         }
 
+        // Actualizar la valoración en MongoDB
         update := bson.M{
             "$set": bson.M{
-                "valoracion": promedio,
+                "valoracion": nuevoPromedio,
             },
         }
 
@@ -134,44 +136,62 @@ func (s *PuntuacionService) CrearPuntuacionParaCurso(ctx context.Context, cursoI
     return err
 }
 
-// ObtenerPromedioPuntuacionesCurso obtiene la valoración promedio de un curso.
-func (s *PuntuacionService) ObtenerPromedioPuntuacionesCurso(ctx context.Context, cursoID string) (float32, error) {
-    session := s.Driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
-    defer session.Close(ctx)
-
-    promedio, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
-        query := `
-            MATCH (:User)-[r:CALIFICÓ]->(:Course {id: $cursoID})
-            RETURN avg(r.valor) AS promedio
-        `
-        records, err := tx.Run(ctx, query, map[string]interface{}{
-            "cursoID": cursoID,
-        })
-        if err != nil {
-            return nil, err
-        }
-
-        if records.Next(ctx) {
-            record := records.Record()
-            promedioValue, ok := record.Get("promedio")
-            if !ok || promedioValue == nil {
-                return float32(0), nil
-            }
-            return promedioValue.(float64), nil
-        }
-
-        if err = records.Err(); err != nil {
-            return nil, err
-        }
-
-        return float32(0), nil
+// calcularPromedioNeo4j obtiene el promedio directamente desde Neo4j
+func (s *PuntuacionService) calcularPromedioNeo4j(ctx context.Context, tx neo4j.ManagedTransaction, cursoID string) (float32, error) {
+    query := `
+        MATCH (:User)-[r:CALIFICÓ]->(:Course {id: $cursoID})
+        RETURN avg(r.valor) AS promedio
+    `
+    records, err := tx.Run(ctx, query, map[string]interface{}{
+        "cursoID": cursoID,
     })
-
     if err != nil {
         return 0, err
     }
 
-    return float32(promedio.(float64)), nil
+    if records.Next(ctx) {
+        record := records.Record()
+        promedioValue, ok := record.Get("promedio")
+        if !ok || promedioValue == nil {
+            return 0, nil
+        }
+
+        switch v := promedioValue.(type) {
+        case float64:
+            return float32(v), nil
+        case float32:
+            return v, nil
+        default:
+            return 0, nil
+        }
+    }
+
+    if err = records.Err(); err != nil {
+        return 0, err
+    }
+
+    return 0, nil
+}
+
+// ObtenerPromedioPuntuacionesCurso obtiene la valoración del curso desde MongoDB (ya no se calcula en Neo4j)
+func (s *PuntuacionService) ObtenerPromedioPuntuacionesCurso(ctx context.Context, cursoID string) (float32, error) {
+    objCursoID, err := parseObjectID(cursoID)
+    if err != nil {
+        return 0, errors.New("cursoID inválido")
+    }
+
+    // Obtener el curso desde MongoDB y retornar el campo valoracion
+    var curso models.Curso
+    err = s.CursoCollection.FindOne(ctx, bson.M{"_id": objCursoID}).Decode(&curso)
+    if err != nil {
+        if err == mongo.ErrNoDocuments {
+            return 0, errors.New("curso no encontrado")
+        }
+        return 0, err
+    }
+
+    // Retornar la valoracion del curso directamente
+    return curso.Valoracion, nil
 }
 
 func parseObjectID(id string) (primitive.ObjectID, error) {

@@ -56,7 +56,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Agrega un comentario a una clase por su ID",
+                "description": "Agrega un comentario a una clase por su ID. Se requiere autor (email del usuario), password del usuario, titulo, detalle, meGusta, noMeGusta. La fecha se asigna automáticamente.",
                 "consumes": [
                     "application/json"
                 ],
@@ -76,7 +76,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Comentario a crear",
+                        "description": "Comentario a crear (autor, password, titulo, detalle, meGusta, noMeGusta)",
                         "name": "comentario",
                         "in": "body",
                         "required": true,
@@ -99,7 +99,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Clase no encontrada",
+                        "description": "Clase no encontrada o usuario no encontrado/credenciales inválidas",
                         "schema": {
                             "$ref": "#/definitions/response.ErrorResponse"
                         }
@@ -988,6 +988,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "autor": {
+                    "description": "email del usuario",
                     "type": "string"
                 },
                 "clase_id": {
@@ -1007,6 +1008,10 @@ const docTemplate = `{
                 },
                 "no_me_gusta": {
                     "type": "integer"
+                },
+                "password": {
+                    "description": "password del usuario",
+                    "type": "string"
                 },
                 "titulo": {
                     "type": "string"

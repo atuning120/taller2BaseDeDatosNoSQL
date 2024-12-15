@@ -56,7 +56,7 @@ func main() {
 
 	// Inicializar servicios y controladores
 	db := mongoClient.Database("miBaseDeDatos")
-	cursoService := services.NewCursoService(db)
+	cursoService := services.NewCursoService(db, neo4j.Driver)
 	cursoControlador := controllers.NewCursoControlador(cursoService)
 
 	unidadService := services.NewUnidadService(db)
@@ -65,11 +65,12 @@ func main() {
 	claseService := services.NewClaseService(db)
 	claseControlador := controllers.NewClaseControlador(claseService)
 
-	usuarioService := services.NewUsuarioService(redisClient,db.Collection("cursos"),db.Collection("unidades"),db.Collection("clases"))
+	usuarioService := services.NewUsuarioService(redisClient,db.Collection("cursos"),db.Collection("unidades"),db.Collection("clases"),neo4j.Driver)
     usuarioControlador := controllers.NewUsuarioControlador(usuarioService)
 
-	comentarioService := services.NewComentarioService(neo4j.Driver)
+	comentarioService := services.NewComentarioService(neo4j.Driver, redisClient)
 	comentarioControlador := controllers.NewComentarioControlador(comentarioService)
+
 
     puntuacionService := services.NewPuntuacionService(neo4j.Driver, db.Collection("cursos"),redisClient)
     puntuacionesControlador := controllers.NewPuntuacionesControlador(puntuacionService)

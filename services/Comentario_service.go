@@ -1,25 +1,27 @@
-// services/comentario_service.go
 package services
 
 import (
     "context"
+    "encoding/json"
     "errors"
     "go-API/models"
     "time"
 
+    "github.com/go-redis/redis/v8"
     "github.com/google/uuid"
     "github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 type ComentarioService struct {
-    Driver neo4j.DriverWithContext
+    Driver      neo4j.DriverWithContext
+    RedisClient *redis.Client
 }
 
-func NewComentarioService(driver neo4j.DriverWithContext) *ComentarioService {
-    return &ComentarioService{Driver: driver}
+func NewComentarioService(driver neo4j.DriverWithContext, redisClient *redis.Client) *ComentarioService {
+    return &ComentarioService{Driver: driver, RedisClient: redisClient}
 }
 
-// ObtenerComentariosPorClase obtiene todos los comentarios asociados a una clase.
+// ObtenerComentariosPorClase (sin cambios)
 func (s *ComentarioService) ObtenerComentariosPorClase(ctx context.Context, claseID string) ([]models.Comentario, error) {
     session := s.Driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
     defer session.Close(ctx)
@@ -68,6 +70,20 @@ func (s *ComentarioService) ObtenerComentariosPorClase(ctx context.Context, clas
 
 // CrearComentarioParaClase crea un nuevo comentario asociado a una clase.
 func (s *ComentarioService) CrearComentarioParaClase(ctx context.Context, claseID string, comentario *models.Comentario) (*models.Comentario, error) {
+    // Verificar el usuario en Redis
+    key := "usuario:" + comentario.Autor + ":" + comentario.Password
+    val, err := s.RedisClient.Get(ctx, key).Result()
+    if err == redis.Nil {
+        return nil, errors.New("usuario no encontrado o credenciales inválidas")
+    } else if err != nil {
+        return nil, err
+    }
+
+    var u models.Usuario
+    if err := json.Unmarshal([]byte(val), &u); err != nil {
+        return nil, err
+    }
+
     session := s.Driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
     defer session.Close(ctx)
 
@@ -94,7 +110,6 @@ func (s *ComentarioService) CrearComentarioParaClase(ctx context.Context, claseI
         // Generar un ID único para el comentario
         comentarioID := uuid.New().String()
         comentario.ID = comentarioID
-        comentario.Fecha = time.Now()
 
         // Crear el comentario y las relaciones
         createQuery := `
@@ -108,9 +123,8 @@ func (s *ComentarioService) CrearComentarioParaClase(ctx context.Context, claseI
                 meGusta: $meGusta,
                 noMeGusta: $noMeGusta
             })-[:PERTENECE_A]->(:Course)-[:CONTENEDOR_DE]->(clase)
-            RETURN c.id AS id, c.autor AS autor, c.fecha AS fecha, c.titulo AS titulo, c.detalle AS detalle, c.meGusta AS meGusta, c.noMeGusta AS noMeGusta
+            RETURN c.id, c.autor, c.fecha, c.titulo, c.detalle, c.meGusta, c.noMeGusta
         `
-        // Primero obtenemos el ResultWithContext y el error
         res, err := tx.Run(ctx, createQuery, map[string]interface{}{
             "id":        comentario.ID,
             "autor":     comentario.Autor,
@@ -124,9 +138,22 @@ func (s *ComentarioService) CrearComentarioParaClase(ctx context.Context, claseI
             return nil, err
         }
 
-        // Ahora consumimos el resultado
-        _, err = res.Consume(ctx)
-        if err != nil {
+        if !res.Next(ctx) {
+            return nil, errors.New("no se pudo crear el comentario")
+        }
+
+        record := res.Record()
+        // Actualizar los campos del comentario con los retornados desde Neo4j
+        comentario.ID = record.Values[0].(string)
+        comentario.Autor = record.Values[1].(string)
+        comentario.Fecha = record.Values[2].(time.Time)
+        comentario.Titulo = record.Values[3].(string)
+        comentario.Detalle = record.Values[4].(string)
+        comentario.MeGusta = int(record.Values[5].(int64))
+        comentario.NoMeGusta = int(record.Values[6].(int64))
+
+        // Consumir el resultado
+        if err = res.Err(); err != nil {
             return nil, err
         }
 
@@ -139,4 +166,3 @@ func (s *ComentarioService) CrearComentarioParaClase(ctx context.Context, claseI
 
     return result.(*models.Comentario), nil
 }
-
